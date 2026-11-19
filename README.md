@@ -18,6 +18,7 @@ The repository is private. Public publication and deployment require separate ow
 
 - Scan SPL Token and Token-2022 accounts for a connected wallet, or inspect an address without connecting.
 - Preview and simulate actions before requesting a wallet signature.
+- Choose **Claim with Tip** (highlighted) or **Claim without Tip** directly in the review. The voluntary tip is 20% of the quoted recovered SOL before network fees; both options show their estimated net amount.
 - Close eligible empty accounts and optionally burn selected token balances before closing their accounts.
 - Detect supported Pump cashback and reclaim eligible reward-account rent. Accounts with pending token incentives, other token rewards, or unknown fields remain open.
 - View locally recorded claims, cumulative charts, network fees, and net amounts for 7 days, 30 days, or all time.
@@ -58,9 +59,11 @@ The default upstream is Solana's public mainnet RPC. Public RPC limits may preve
 1. Connect a wallet or choose **View an address**.
 2. Review the selected accounts and rewards. Empty accounts and supported Pump claims are selected initially; token balances require an explicit selection.
 3. Choose **Review selection**. Solfund simulates each batch and shows what would be burned, reclaimed, or skipped.
-4. Approve the intended actions in the wallet. Burning is permanent. The app monitors submitted signatures and links to the explorer.
+4. Choose either claim option, then approve the intended actions in the wallet. The optional tip is included in the same claim transaction and is never added to the no-tip option. Burning is permanent. The app monitors submitted signatures and links to the explorer.
 
-The **Account** button opens history recorded by this browser, separated by wallet. It starts with claims submitted through this feature; it does not import a wallet's complete transaction history. Known signatures are checked against the blockchain. Amounts remain marked as estimates until transaction balances and fees are available. Clearing browser storage removes this local record.
+The tip recipient is fixed in [`site/lib/tips.js`](site/lib/tips.js). Tips are rounded down to whole lamports per transaction. A failed transaction pays no tip, although Solana can still charge its network fee. Claims from the tip-receiving wallet do not send a self-tip. No tip preference is saved or applied automatically to later claims.
+
+The **Account** button opens history recorded by this browser, separated by wallet. It starts with claims submitted through this feature; it does not import a wallet's complete transaction history. Known signatures are checked against the blockchain. Gross recovery, voluntary tips, network fees, and net amounts are kept separate. Amounts remain marked as estimates until transaction balances, fees, and the expected tip transfer are verified. Clearing browser storage removes this local record.
 
 ## Data and trust
 

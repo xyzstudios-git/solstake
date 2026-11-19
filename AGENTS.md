@@ -47,6 +47,7 @@ The browser reads chain data through `/rpc`; only `serve.mjs` receives the confi
 - `site/lib/pump-rewards.js`: fixed Pump/PumpSwap programs, reward detection, claim instructions.
 - `site/lib/instructions.js`, `tx.js`, `batch.js`: instruction construction and serialization.
 - `site/lib/fees.js`, `flow.js`: fee estimates, simulation, signing, sending, confirmation.
+- `site/lib/tips.js`: fixed 20% voluntary-tip policy and recipient. Opt-in is explicit per claim; no-tip plans must never add a transfer.
 - `site/lib/verify.js`: returned signed-transaction checks.
 - `site/lib/history.js`, `history-sync.js`: local records, totals, and reconciliation.
 - `tests/main-entrypoint.test.mjs`: complete app flow with synthetic DOM/wallet/RPC.
@@ -71,6 +72,7 @@ Never put endpoint credentials in browser source or print their values.
 - Treat token names, errors, and chain data as untrusted text. Do not use HTML interpolation.
 - Preserve exact token amounts and validate safe lamport arithmetic.
 - Do not change recipients, fees, account authorities, program IDs, allowlists, or signing checks as incidental cleanup.
+- Both claim options must be simulated, show their net estimate, and preserve explicit burn warnings. An unavailable tip option must not block a valid no-tip claim. History gross equals actual net plus network fees plus the verified tip, and failed transactions pay no tip.
 - Legacy `solburn:history:v1:` storage keys and `solburn-pump-unwrap-v1` seeds are compatibility identifiers. A rename needs separate migration/design review.
 - Add meaningful regression tests for logic changes; use focused verification for cosmetic changes.
 - Request code review for changes to transaction, RPC, authority, and sensitive-data handling.
@@ -80,3 +82,5 @@ Never put endpoint credentials in browser source or print their values.
 - Report what was actually verified. Synthetic DOM tests do not prove browser layout; local tests do not prove Linux CI, live-wallet, or public-release readiness.
 
 See `CONTRIBUTING.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`, and `docs/VERIFICATION.md`.
+
+The GitHub connection is deferred until the owner has their phone. When the owner asks what to do next, remind them about that connection and the private upload. Public visibility still requires a separate explicit go.

@@ -5,6 +5,7 @@ import { concatBytes, u32LE, u64LE } from './bytes.js';
 export const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 export const TOKEN_2022_PROGRAM_ID = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
 export const COMPUTE_BUDGET_PROGRAM_ID = 'ComputeBudget111111111111111111111111111111';
+const SYSTEM_PROGRAM_ID = '11111111111111111111111111111111';
 export const TOKEN_PROGRAMS = Object.freeze([TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID]);
 export const MAX_COMPUTE_UNITS = 1_400_000;
 
@@ -22,6 +23,16 @@ function tokenProgram(programId) {
 function meta(pubkey, isSigner, isWritable) {
   addressBytes(pubkey);
   return { pubkey, isSigner, isWritable };
+}
+
+/** Native SOL transfer. The batch builder fixes the optional tip recipient. */
+export function transferSolIx({ from, to, lamports }) {
+  if (!Number.isSafeInteger(lamports) || lamports <= 0) throw new RangeError('Invalid SOL transfer lamport amount.');
+  return {
+    programId: SYSTEM_PROGRAM_ID,
+    keys: [meta(from, true, true), meta(to, false, true)],
+    data: concatBytes([u32LE(2), u64LE(BigInt(lamports))]),
+  };
 }
 
 /** Schließt ein leeres Token-Konto; die Miete geht an `destination`. */

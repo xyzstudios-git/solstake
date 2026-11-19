@@ -2,6 +2,7 @@
 import { h, icon, solMark } from './dom.js';
 import { LAMPORTS_PER_SOL, formatSolNumber, formatTokenAmount, formatUsd, monogram, shortAddress, tokenValueUsd } from '../lib/format.js';
 import { WSOL_MINT, impersonates } from '../lib/accounts.js';
+import { TIP_RECIPIENT, batchTipLamports } from '../lib/tips.js';
 
 export const VALUE_WARNING_USD = 1;
 const ROUND_SIZE = 8; // Transaktionen je Wallet-Freigabe (wie in flow.js)
@@ -84,10 +85,10 @@ export function renderStart({ onConnect, onWatch }) {
       { class: 'app-hero app-material', 'aria-labelledby': 'start-title' },
       h('img', { class: 'app-hero__mark', src: 'icon.svg', alt: '', width: 104, height: 104 }),
       h('h1', { class: 'app-hero__title', id: 'start-title' }, 'Get your ', h('span', { class: 'app-gradient-text', text: 'SOL' }), ' back'),
-      h('div', { class: 'app-hero__text', text: 'Close empty accounts, burn unwanted tokens, and recover the rent — usually 0.002 SOL per account. No service fee.' }),
+      h('div', { class: 'app-hero__text', text: 'Close empty accounts, burn unwanted tokens, and recover the rent — usually 0.002 SOL per account. Optional tips support Solfund.' }),
       h('button', { class: 'p-button p-button-touch-large p-button-primary app-cta app-wide', type: 'button', on: { click: onConnect } }, 'Connect wallet'),
       h('button', { class: 'p-button p-button-touch-small p-button-borderless', type: 'button', on: { click: onWatch } }, 'View an address'),
-      h('ul', { class: 'app-facts', 'aria-label': 'Safety' }, fact('lock-key', 'Your keys stay in your wallet'), fact('flask', 'Simulated before sending'), fact('hand-coins', '0% service fee')),
+      h('ul', { class: 'app-facts', 'aria-label': 'Safety' }, fact('lock-key', 'Your keys stay in your wallet'), fact('flask', 'Simulated before sending'), fact('hand-coins', 'Tipping is optional')),
     ),
   );
 }
@@ -436,7 +437,7 @@ function sheetHero(labelText, lamports) {
   );
 }
 
-export function renderFlowReady({ plan, state, minFeeLamports }) {
+export function renderFlowReady({ plan, tipPlan = null, tipError = null, state, minFeeLamports }) {
   const items = plan.batches.flatMap((b) => b.items);
   const burns = items.filter((item) => item.action === 'burn').length;
   const approvals = Math.ceil(plan.batches.length / ROUND_SIZE);
@@ -448,13 +449,22 @@ export function renderFlowReady({ plan, state, minFeeLamports }) {
     parts.push(h('div', { class: 'app-note app-note-strong', text: 'Nothing here can be processed. See the reasons below.' }));
   } else {
     parts.push(
-      sheetHero('You receive approximately', Math.max(0, plan.reclaimLamports - plan.networkFeeLamports)),
+      sheetHero('Available to reclaim', plan.reclaimLamports),
       list([
         closes ? row({ title: 'Token accounts to close', trailing: detail(String(closes)) }) : null,
         pumpItems.length ? row({ title: 'Pump rewards', trailing: detail(amount(pumpItems.reduce((sum, item) => sum + item.account.lamports, 0))) }) : null,
         burns ? row({ title: 'Tokens to burn', trailing: detail(String(burns)) }) : null,
-        row({ title: 'Network fee', subtitle: 'estimated', trailing: detail(amount(plan.networkFeeLamports, { sign: '−' })) }),
+        row({ title: 'Network fee', subtitle: 'estimated · without tip', trailing: detail(amount(plan.networkFeeLamports, { sign: '−' })) }),
       ]),
+      h('div', { class: 'app-tip-info' },
+        h('div', { class: 'app-tip-info__title' }, icon('heart'), h('span', { text: 'Support Solfund with an optional tip' })),
+        h('div', { class: 'app-note', text: 'A 20% tip is calculated on the quoted SOL claim before network fees. Both options below show your estimated net amount.' }),
+        tipPlan ? h('div', { class: 'app-tip-info__amount' }, h('span', { text: 'Optional tip' }), amount(tipPlan.tipLamports)) : null,
+        h('a', { class: 'app-tip-recipient', href: `https://solscan.io/account/${TIP_RECIPIENT}`, target: '_blank', rel: 'noopener noreferrer', 'aria-label': `Tip recipient ${TIP_RECIPIENT}` },
+          h('span', { text: `Tip wallet · ${shortAddress(TIP_RECIPIENT)}` }), icon('arrow-square-out')),
+        state.owner === TIP_RECIPIENT ? h('div', { class: 'app-note', text: 'You are using the tip-receiving wallet. No tip will be sent.' }) : null,
+        tipError ? h('div', { class: 'app-note', role: 'status', text: tipError }) : null,
+      ),
     );
   }
 
@@ -523,7 +533,7 @@ function burnRow(account, state) {
   });
 }
 
-export function renderFlowReadyFooter({ plan, state, minFeeLamports, onExecute, onConnect }) {
+export function renderFlowReadyFooter({ plan, tipPlan = null, state, minFeeLamports, minTipFeeLamports = Infinity, onExecute, onConnect }) {
   if (state.readOnly) {
     return h('button', { class: 'p-button p-button-touch-large p-button-primary app-cta app-wide', type: 'button', on: { click: onConnect } }, 'Connect wallet');
   }
@@ -531,15 +541,21 @@ export function renderFlowReadyFooter({ plan, state, minFeeLamports, onExecute, 
   if (items.length === 0) return null;
   const burns = items.filter((item) => item.action === 'burn').length;
   const tooPoor = state.balance !== null && state.balance < minFeeLamports;
-  const pumpCount = items.filter((item) => item.action === 'claim-pump').length;
-  const closes = items.length - pumpCount;
-  let text = `Close ${closes} ${closes === 1 ? 'account' : 'accounts'}`;
-  if (pumpCount) text = closes ? 'Claim rewards and close accounts' : 'Claim rewards';
-  if (burns) text = pumpCount ? 'Burn tokens & claim rewards' : `Burn ${burns} ${burns === 1 ? 'token' : 'tokens'}`;
-  return h(
-    'button',
-    { class: ['p-button', 'p-button-touch-large', 'app-wide', burns > 0 ? 'p-button-destructive' : 'p-button-primary app-cta'], type: 'button', disabled: tooPoor, on: { click: onExecute } },
-    text,
+  const tipDisabled = !tipPlan || state.balance !== null && state.balance < minTipFeeLamports;
+  const net = (choice) => Math.max(0, choice.reclaimLamports - choice.networkFeeLamports - (choice.tipLamports ?? 0));
+  const option = (title, choice, withTip, disabled) => h('button', {
+    class: ['p-button', 'p-button-touch-large', 'app-wide', 'app-claim-choice', withTip ? 'p-button-primary app-cta' : 'p-button-default app-claim-choice--plain'],
+    type: 'button', disabled,
+    'aria-label': title,
+    on: { click: () => onExecute(withTip) },
+  },
+  h('span', { class: 'app-claim-choice__title' }, withTip ? icon('heart') : icon('arrow-down'), h('span', { text: title })),
+  h('span', { class: 'app-claim-choice__detail', text: choice ? `Receive ≈ ${formatSolNumber(net(choice))} SOL${withTip && choice.tipLamports > 0 ? ' · 20% tip included' : ''}` : 'Not available for this selection' }),
+  );
+  return h('div', { class: 'app-claim-choices' },
+    burns ? h('div', { class: 'app-claim-burn-note', role: 'note', text: `Both options burn ${burns} selected ${burns === 1 ? 'token' : 'tokens'}. Burning is permanent.` }) : null,
+    option(burns ? 'Burn & Claim with Tip' : 'Claim with Tip', tipPlan, true, tipDisabled),
+    option(burns ? 'Burn & Claim without Tip' : 'Claim without Tip', plan, false, tooPoor),
   );
 }
 
@@ -561,6 +577,8 @@ export function renderFlowProgress({ plan, statuses }) {
     (sum, batch, i) => (statuses[i].status === 'confirmed' ? sum + batch.items.reduce((s, item) => s + item.account.lamports, 0) : sum),
     0,
   );
+  const confirmedTips = plan.batches.reduce((sum, batch, i) => sum + (statuses[i].status === 'confirmed'
+    ? batchTipLamports({ owner: plan.owner, items: batch.items, withTip: plan.withTip ?? false }) : 0), 0);
   const rows = plan.batches.map((batch, i) => {
     const s = statuses[i];
     const view = STATUS_VIEW[s.status] ?? STATUS_VIEW.unknown;
@@ -573,7 +591,8 @@ export function renderFlowProgress({ plan, statuses }) {
     return row({ title: total === 1 ? 'Transaction' : `Transaction ${i + 1} of ${total}`, subtitle, trailing: h('span', { class: 'ui-row app-push' }, link, view.icon()) });
   });
   return [
-    sheetHero('Reclaimed', confirmedLamports),
+    sheetHero('Reclaimed before tips and fees', confirmedLamports),
+    confirmedTips > 0 ? h('div', { class: 'app-note', text: `Voluntary tip sent: ${formatSolNumber(confirmedTips)} SOL. Included in the confirmed transactions.` }) : null,
     h('progress', { class: 'p-progress p-progress-touch app-progress', value: String(finished), max: String(Math.max(1, total)), 'aria-label': `${finished} of ${total} complete` }),
     list(rows),
   ];

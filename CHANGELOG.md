@@ -6,6 +6,10 @@ Changes are recorded by release. Unreleased work is not a published or productio
 
 ### Added
 
+- Optional 20% tipping in the claim review, with a prominent tipped option and an equally direct no-tip option.
+- Both plans are simulated before approval; tips execute atomically with claims and are never added after an opt-out.
+- History separates verified tips, network fees, gross recovery and net received amounts.
+
 - SPL Token and Token-2022 account scanning, simulation, and eligible account cleanup.
 - Optional selected-token burning with value warnings and extra confirmation.
 - Supported Pump.fun/PumpSwap cashback and eligible reward-account rent recovery.

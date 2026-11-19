@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { Keypair, VersionedTransaction } from '@solana/web3.js';
 import { encodeBase58 } from '../site/lib/base58.js';
 import { createHistoryStore, summarizeHistory } from '../site/lib/history.js';
+import { TIP_RECIPIENT } from '../site/lib/tips.js';
 import { TOKEN, WSOL, tokenEntry } from './support/fixtures.mjs';
 
 // A deliberately small DOM adapter for the real entry point. It supplies browser
@@ -184,6 +185,8 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   const watchedOwner = Keypair.fromSeed(new Uint8Array(32).fill(45)).publicKey.toBase58();
   let failNextOwnerScan = true;
   let refreshClaim = false;
+  let failTipSimulation = false;
+  let submittedTip = 0;
   let blockhashRound = 0;
   const watchedAccount = tokenEntry({ owner: watchedOwner });
   let releaseConfirmation;
@@ -228,7 +231,12 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
       case 'simulateTransaction':
         assert.equal(signed, calls.filter((call) => call.method === 'sendTransaction').length, 'review simulates without requesting another signature');
         assert.equal(params[1].sigVerify, false);
-        result = { value: { err: null, logs: [], unitsConsumed: 15_000 } };
+        {
+          const tx = VersionedTransaction.deserialize(Buffer.from(params[0], 'base64'));
+          const hasTip = tx.message.compiledInstructions.some((ix) => tx.message.staticAccountKeys[ix.programIdIndex].toBase58() === '11111111111111111111111111111111'
+            && tx.message.staticAccountKeys[ix.accountKeyIndexes[1]]?.toBase58() === TIP_RECIPIENT);
+          result = { value: { err: hasTip && failTipSimulation ? { InstructionError: [3, { Custom: 1 }] } : null, logs: [], unitsConsumed: 15_000 } };
+        }
         break;
       case 'getLatestBlockhash': result = { value: { blockhash: blockhashRound++ === 0 ? owner : nextOwner, lastValidBlockHeight: 500 } }; break;
       case 'sendTransaction':
@@ -236,6 +244,10 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
         submittedTransaction = VersionedTransaction.deserialize(Buffer.from(params[0], 'base64'));
         submittedSignature = encodeBase58(submittedTransaction.signatures[0]);
         assert.equal(submittedTransaction.message.staticAccountKeys[0].toBase58(), owner);
+        submittedTip = submittedTransaction.message.compiledInstructions.reduce((sum, ix) => sum + (
+          submittedTransaction.message.staticAccountKeys[ix.programIdIndex].toBase58() === '11111111111111111111111111111111'
+            && submittedTransaction.message.staticAccountKeys[ix.accountKeyIndexes[1]]?.toBase58() === TIP_RECIPIENT
+            ? Number(new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength).getBigUint64(4, true)) : 0), 0);
         result = submittedSignature;
         break;
       case 'getSignatureStatuses':
@@ -262,7 +274,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
     t.after(() => descriptor ? Object.defineProperty(globalThis, name, descriptor) : delete globalThis[name]);
   }
   const $ = (id) => browser.document.getElementById(id);
-  const findButton = (root, text) => descendants(root).find((node) => node.tagName === 'BUTTON' && node.textContent === text);
+  const findButton = (root, text) => descendants(root).find((node) => node.tagName === 'BUTTON' && (node.textContent === text || node.getAttribute('aria-label') === text));
   const store = createHistoryStore({ storage: localStorage });
   const saved = () => store.read(owner).entries;
 
@@ -280,19 +292,23 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.equal(signed, 0);
 
   $('review-button').click();
-  await until(() => findButton($('flow-sheet-footer'), 'Close 1 account'), 'simulated review is ready');
+  await until(() => findButton($('flow-sheet-footer'), 'Claim without Tip'), 'simulated review is ready');
   assert.ok($('flow-sheet').classList.contains('active'));
   assert.ok(calls.some((call) => call.method === 'simulateTransaction'));
   assert.equal(signed, 0, 'opening review never signs or sends');
   assert.equal(submittedSignature, null);
+  assert.equal(findButton($('flow-sheet-footer'), 'Claim with Tip').disabled, false);
+  assert.match(findButton($('flow-sheet-footer'), 'Claim with Tip').textContent, /20% tip included/);
 
-  findButton($('flow-sheet-footer'), 'Close 1 account').focus();
-  findButton($('flow-sheet-footer'), 'Close 1 account').click();
+  findButton($('flow-sheet-footer'), 'Claim without Tip').focus();
+  findButton($('flow-sheet-footer'), 'Claim without Tip').click();
   await until(() => saved()[0]?.status === 'sent', 'signed transaction is sent and recorded');
   assert.equal(signed, 1, 'execute reaches the signer (regression: undeclared submitted)');
   assert.equal(calls.filter((call) => call.method === 'sendTransaction').length, 1);
   assert.equal(saved()[0].signature, submittedSignature);
   assert.equal(saved()[0].actualNetLamports, null);
+  assert.equal(submittedTip, 0, 'the opt-out transaction includes no tip transfer');
+  assert.equal(saved()[0].tipLamports, 0);
   assert.equal(saved()[0].reclaimLamports, emptyAccount.account.lamports);
   assert.deepEqual(saved()[0].sources, [{ kind: 'token', label: 'Token accounts', count: 1 }]);
   assert.equal(summarizeHistory(saved(), { now }).totalClaimedLamports, 0, 'pending signatures are excluded from Total claimed');
@@ -377,7 +393,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   await until(() => $('review-button').textContent === 'Review selection (1)', 'read-only address accounts load');
   $('review-button').click();
   await until(() => findButton($('flow-sheet-footer'), 'Connect wallet'), 'read-only review offers a connection instead of execution');
-  assert.equal(findButton($('flow-sheet-footer'), 'Close 1 account'), undefined);
+  assert.equal(findButton($('flow-sheet-footer'), 'Claim without Tip'), undefined);
   assert.match($('flow-sheet-body').textContent, /Connect the wallet that owns this address/);
   assert.equal(calls.filter((call) => call.method === 'sendTransaction').length, 1, 'watch-only mode never submits another transaction');
   findButton($('flow-sheet-footer'), 'Connect wallet').click();
@@ -388,12 +404,22 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   // Wallet extension events may arrive while confirmation is pending. Keep the
   // captured claim owner intact, then apply the latest account after completion.
   refreshClaim = true;
+  failTipSimulation = true;
   $('header-refresh').click();
   await until(() => !$('header-refresh').disabled && $('review-button').textContent === 'Review selection (1)', 'another synthetic claim is available');
   $('review-button').click();
-  await until(() => findButton($('flow-sheet-footer'), 'Close 1 account'), 'second review is ready');
-  findButton($('flow-sheet-footer'), 'Close 1 account').click();
+  await until(() => findButton($('flow-sheet-footer'), 'Claim with Tip')?.disabled, 'tip failure leaves the untipped option available');
+  assert.equal(findButton($('flow-sheet-footer'), 'Claim without Tip').disabled, false);
+  findButton($('flow-sheet-footer'), 'Claim with Tip').dispatchEvent(new Event('click'));
+  assert.equal(signed, 1, 'an unavailable tipped plan never signs');
+  failTipSimulation = false;
+  browser.PuppertinoModalManager.closeModal('#flow-sheet');
+  $('review-button').click();
+  await until(() => findButton($('flow-sheet-footer'), 'Claim with Tip')?.disabled === false, 'second review is ready');
+  findButton($('flow-sheet-footer'), 'Claim with Tip').click();
   await until(() => saved().length === 2 && saved().some((entry) => entry.status === 'sent'), 'second claim has been submitted');
+  assert.equal(submittedTip, Math.floor(emptyAccount.account.lamports / 5));
+  assert.equal(saved()[0].tipLamports, submittedTip);
   const chipDuringClaim = $('wallet-chip').textContent;
   walletChange({ accounts: [{ ...walletAccount, address: nextOwner }] });
   assert.equal($('wallet-chip').textContent, chipDuringClaim, 'extension switching is deferred during the active claim');

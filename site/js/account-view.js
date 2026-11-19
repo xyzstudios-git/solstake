@@ -140,6 +140,7 @@ function transactionRow(entry) {
         amount(entry.reclaimLamports, { sign: confirmed ? '+' : '', unit: true }),
       ),
       h('div', { class: 'app-account-footnote', text: `Fee ${entry.actualNetLamports === null ? '≈ ' : ''}${formatSolNumber(entry.feeLamports)} SOL` }),
+      entry.tipLamports > 0 ? h('div', { class: 'app-account-footnote', text: `${confirmed ? 'Tip' : 'Expected tip'} ${formatSolNumber(entry.tipLamports)} SOL` }) : null,
     ),
     h('a', { class: 'p-button p-button-touch-small p-button-borderless p-button-icon-only app-account-explorer', href: `https://solscan.io/tx/${encodeURIComponent(entry.signature)}`, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Open transaction in explorer', title: 'Open in explorer' }, icon('arrow-square-out')),
   );
@@ -155,7 +156,7 @@ export function renderAccount({ owner, entries, range = '30d', warning = '', onR
       h('div', {},
         h('div', { class: 'app-account-caption', text: 'Total claimed' }),
         h('div', { class: 'app-account-total' }, amount(summary.totalClaimedLamports)),
-        h('div', { class: 'app-account-footnote', text: summary.claimedIsEstimated ? 'Confirmed claims · estimated before network fees' : 'Confirmed claims · before network fees' }),
+        h('div', { class: 'app-account-footnote', text: summary.claimedIsEstimated ? 'Confirmed claims · estimated before tips and fees' : 'Confirmed claims · before tips and fees' }),
       ),
       usd ? h('div', { class: 'app-account-usd' }, h('div', { text: `≈ ${usd}` }), h('div', { class: 'app-account-footnote', text: 'at the current SOL price' })) : null,
     ),
@@ -164,7 +165,8 @@ export function renderAccount({ owner, entries, range = '30d', warning = '', onR
     h('div', { class: 'app-account-metrics' },
       metric('Confirmed transactions', String(summary.confirmedCount), summary.pendingCount ? `${summary.pendingCount} still pending` : 'in the selected period'),
       metric('Network fees', amount(summary.totalFeeLamports), summary.netIsEstimated ? 'estimated from claims' : 'from confirmed transactions'),
-      metric('Net reclaimed', amount(summary.netLamports), summary.netIsEstimated ? 'estimated after network fees' : 'from confirmed transactions'),
+      metric('Voluntary tips', amount(summary.totalTipLamports), 'from confirmed claims'),
+      metric('Net reclaimed', amount(summary.netLamports), summary.netIsEstimated ? 'estimated after tips and fees' : 'after tips and network fees'),
     ),
   );
 

@@ -25,6 +25,8 @@ The normal test suite uses mocked transport or LiteSVM; it does not require RPC 
 
 ## Browser observations
 
+The optional-tip extension passed **151 automated tests**, including both app-entry-point choices, exact System Program transfer comparison, packet sizing, signed-message tampering, rollback in LiteSVM, tip-unavailable fallback, and history reconciliation. No real tip or mainnet claim was signed or submitted by these checks. Rendered browser QA for the new tip controls remains open because browser access was unavailable during this change.
+
 The account-selection layout was inspected in Chrome at 320, 375, 768, and 1440 CSS-pixel viewport widths without horizontal overflow in the tested state. Mobile claim-preview and long-error-dialog layouts were checked. The English Account screen and circular 44 × 44 Account control were observed in the live local app, including a previously recorded claim reconciled with transaction details.
 
 These observations cover the tested dark appearance and states. They do not establish accessibility conformance, support for every browser, complete light-mode verification, or all wallet/mobile combinations. Synthetic DOM tests do not substitute for rendered-browser checks.

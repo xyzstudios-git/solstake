@@ -5,6 +5,7 @@ import { MAX_COMPUTE_UNITS } from './instructions.js';
 import { readFirstSignature, hasSignature } from './tx.js';
 import { checkReturnedTransaction } from './verify.js';
 import { toBase64 } from './bytes.js';
+import { batchTipLamports } from './tips.js';
 
 // Fehlercodes der Token-Programme (TokenError)
 const TOKEN_ERRORS = Object.freeze({
@@ -65,8 +66,9 @@ async function isolate(simulate, items) {
  * Bündelt die Posten, simuliert jede Transaktion und sortiert aus, was scheitern würde.
  * Ändert nichts auf der Chain und braucht keine Signatur.
  */
-export async function prepareBurnPlan({ rpc, owner, items, maxItemsPerTx = DEFAULT_MAX_ITEMS }) {
-  if (items.length === 0) return { batches: [], failed: [], computeUnitPrice: 0, reclaimLamports: 0, networkFeeLamports: 0 };
+export async function prepareBurnPlan({ rpc, owner, items, maxItemsPerTx = DEFAULT_MAX_ITEMS, withTip = false }) {
+  batchTipLamports({ owner, items, withTip });
+  if (items.length === 0) return { batches: [], failed: [], computeUnitPrice: 0, reclaimLamports: 0, networkFeeLamports: 0, withTip, tipLamports: 0 };
   // Ohne Gebührenstatistik nehmen wir die Mindest-Prioritätsgebühr; das Verbrennen klappt trotzdem.
   const recent = await rpc.getRecentPrioritizationFees().catch(() => []);
   const computeUnitPrice = choosePriorityFee(recent.map((entry) => entry?.prioritizationFee));
@@ -77,6 +79,7 @@ export async function prepareBurnPlan({ rpc, owner, items, maxItemsPerTx = DEFAU
       recentBlockhash: PLACEHOLDER_BLOCKHASH,
       computeUnitLimit: MAX_COMPUTE_UNITS,
       computeUnitPrice,
+      withTip,
     });
     return rpc.simulate(base64);
   };
@@ -91,7 +94,7 @@ export async function prepareBurnPlan({ rpc, owner, items, maxItemsPerTx = DEFAU
     }
     sources.add(item.account.address);
   }
-  for (const group of packItems({ owner, items, maxItemsPerTx })) {
+  for (const group of packItems({ owner, items, maxItemsPerTx, withTip })) {
     const outcome = await isolate(simulate, group);
     ok.push(...outcome.ok);
     failed.push(...outcome.failed);
@@ -101,6 +104,8 @@ export async function prepareBurnPlan({ rpc, owner, items, maxItemsPerTx = DEFAU
     batches,
     failed,
     computeUnitPrice,
+    withTip,
+    tipLamports: batches.reduce((sum, batch) => sum + batchTipLamports({ owner, items: batch.items, withTip }), 0),
     reclaimLamports: batches.reduce((sum, b) => sum + b.items.reduce((s, item) => s + item.account.lamports, 0), 0),
     networkFeeLamports: estimateNetworkFee(batches.map((b) => ({ computeUnitLimit: b.computeUnitLimit, computeUnitPrice }))),
   };
@@ -198,6 +203,7 @@ async function runRound({ rpc, signer, owner, plan, round, onProgress, sleep, po
       recentBlockhash: blockhash,
       computeUnitLimit: batch.computeUnitLimit,
       computeUnitPrice: plan.computeUnitPrice,
+      withTip: plan.withTip ?? false,
     }),
   );
   onProgress({ type: 'signing', indexes: round.map((entry) => entry.index) });

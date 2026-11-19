@@ -45,6 +45,7 @@ The typography uses the existing system-font stack. No new webfont, Apple font f
 ## Layout and interaction
 
 - A floating capsule header contains refresh, wallet and the circular **44 × 44 px Account icon**.
+- Claim review offers two equally sized controls. **Claim with Tip** uses the prominent Solfund treatment; **Claim without Tip** uses a neutral treatment. Both remain directly visible and show their estimated net payout. The optional 20% amount and recipient are disclosed before approval; token-burning labels remain explicit.
 - SOL and USD summaries sit beside each other on wider screens and stack on narrow screens. The token list spans the content width below.
 - The content maximum is 1180 px, increasing to 1280 px on very wide screens. Cards use a 28 px radius. Shared spacing follows a 4 px scale.
 - Glass is concentrated in navigation and modal controls. Content cards use a stable surface for readable values and descriptions.

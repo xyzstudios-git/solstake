@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHistoryStore, summarizeHistory, reconcileHistoryEntry } from '../site/lib/history.js';
 import { encodeBase58 } from '../site/lib/base58.js';
+import { TIP_RECIPIENT } from '../site/lib/tips.js';
+import { transferSolIx } from '../site/lib/instructions.js';
 
 const owner = encodeBase58(new Uint8Array(32).fill(7));
 const otherOwner = encodeBase58(new Uint8Array(32).fill(8));
@@ -177,4 +179,52 @@ test('failed confirmed transactions contribute only their actual SOL loss and fe
   const late = store.upsert(owner, transaction({ status: 'unknown' }));
   assert.equal(late.entries[0].status, 'failed');
   assert.equal(late.entries[0].actualNetLamports, -6_000);
+});
+
+test('old history entries default to no tip and estimated net subtracts only confirmed tips', () => {
+  const store = createHistoryStore({ storage: storage() });
+  store.upsert(owner, transaction({ status: 'confirmed' }));
+  assert.equal(store.read(owner).entries[0].tipLamports, 0);
+  const summary = summarizeHistory([
+    transaction({ status: 'confirmed', tipLamports: 400_000 }),
+    transaction({ signature: signature(2), status: 'sent', tipLamports: 400_000 }),
+  ], { now });
+  assert.equal(summary.totalClaimedLamports, 2_000_000);
+  assert.equal(summary.totalTipLamports, 400_000);
+  assert.equal(summary.netLamports, 1_595_000);
+  assert.equal(summary.netIsEstimated, true);
+  assert.match(store.upsert(owner, transaction({ tipLamports: -1 })).warning, /could not be recorded/);
+  assert.match(store.upsert(owner, transaction({ tipLamports: 2_000_001 })).warning, /could not be recorded/);
+});
+
+test('tip reconciliation verifies the exact chain transfer and keeps gross recovery separate from net', () => {
+  const ix = transferSolIx({ from: owner, to: TIP_RECIPIENT, lamports: 400_000 });
+  const tx = confirmedTransaction();
+  tx.transaction.message.accountKeys = [owner, TIP_RECIPIENT, '11111111111111111111111111111111'];
+  tx.transaction.message.instructions = [{ programIdIndex: 2, accounts: [0, 1], data: encodeBase58(ix.data) }];
+  tx.meta.preBalances = [10_000_000, 1_000_000, 1];
+  tx.meta.postBalances = [11_594_000, 1_400_000, 1];
+  const checked = reconcileHistoryEntry(transaction({ tipLamports: 400_000 }), tx, owner);
+  assert.equal(checked.reclaimLamports, 2_000_000);
+  assert.equal(checked.tipLamports, 400_000);
+  assert.equal(checked.feeLamports, 6_000);
+  assert.equal(checked.actualNetLamports, 1_594_000);
+  const summary = summarizeHistory([checked], { now });
+  assert.equal(summary.totalClaimedLamports, 2_000_000);
+  assert.equal(summary.totalTipLamports, 400_000);
+  assert.equal(summary.netLamports, 1_594_000);
+  delete tx.transaction.message.instructions;
+  assert.throws(() => reconcileHistoryEntry(transaction({ tipLamports: 400_000 }), tx, owner), /unavailable/);
+});
+
+test('failed tipped transactions record zero paid tip and only the actual network loss', () => {
+  const tx = confirmedTransaction();
+  tx.meta.err = { InstructionError: [3, { Custom: 1 }] };
+  tx.meta.postBalances = [9_994_000];
+  const checked = reconcileHistoryEntry(transaction({ tipLamports: 400_000 }), tx, owner);
+  assert.equal(checked.tipLamports, 0);
+  assert.equal(checked.reclaimLamports, 0);
+  const summary = summarizeHistory([checked], { now });
+  assert.equal(summary.totalTipLamports, 0);
+  assert.equal(summary.netLamports, -6_000);
 });

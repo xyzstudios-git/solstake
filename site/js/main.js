@@ -8,7 +8,8 @@ import { prepareBurnPlan, executeBurnPlan } from '../lib/flow.js';
 import { scanPumpRewards, pumpRewardInstructions } from '../lib/pump-rewards.js';
 import { isAddress } from '../lib/base58.js';
 import { BASE_FEE_LAMPORTS, priorityFeeLamports } from '../lib/fees.js';
-import { shortAddress, formatUsd } from '../lib/format.js';
+import { shortAddress, formatUsd, formatSolNumber } from '../lib/format.js';
+import { batchTipLamports } from '../lib/tips.js';
 import { createHistoryStore } from '../lib/history.js';
 import { syncHistory } from '../lib/history-sync.js';
 import { renderAccount } from './account-view.js';
@@ -44,6 +45,7 @@ let state = Object.freeze({
   filter: '',
   balance: null,
   plan: null,
+  claimPlans: null,
   running: false,
 });
 let scanToken = 0;
@@ -217,6 +219,7 @@ function recordHistoryEvent(owner, plan, event) {
     status: event.type,
     reclaimLamports: batch.items.reduce((sum, item) => sum + item.account.lamports, 0),
     feeLamports: BASE_FEE_LAMPORTS + priorityFeeLamports(batch.computeUnitLimit, plan.computeUnitPrice),
+    tipLamports: batchTipLamports({ owner, items: batch.items, withTip: plan.withTip ?? false }),
     actualNetLamports: null,
     sources: [...groups.values()],
     error: event.error ?? null,
@@ -336,7 +339,7 @@ function changeOwner(patch) {
   finishedRun = false;
   clearTimeout(filterTimer);
   reviewToken += 1;
-  update({ accounts: [], selected: new Set(), names: new Map(), prices: new Map(), pricesLoading: false, pumpWarnings: [], scanError: null, balance: null, filter: '', plan: null, ...patch });
+  update({ accounts: [], selected: new Set(), names: new Map(), prices: new Map(), pricesLoading: false, pumpWarnings: [], scanError: null, balance: null, filter: '', plan: null, claimPlans: null, ...patch });
 }
 
 function resetToStart() {
@@ -352,7 +355,7 @@ function resetToStart() {
   stopWalletEvents();
   stopWalletEvents = () => {};
   scanToken += 1;
-  update({ wallet: null, account: null, signer: null, owner: null, readOnly: false, phase: 'start', accounts: [], selected: new Set(), names: new Map(), prices: new Map(), pricesLoading: false, pumpWarnings: [], scanError: null, balance: null, filter: '', plan: null });
+  update({ wallet: null, account: null, signer: null, owner: null, readOnly: false, phase: 'start', accounts: [], selected: new Set(), names: new Map(), prices: new Map(), pricesLoading: false, pumpWarnings: [], scanError: null, balance: null, filter: '', plan: null, claimPlans: null });
   render();
 }
 
@@ -417,7 +420,7 @@ async function scan() {
   if (state.running || !state.owner) return;
   const token = ++scanToken;
   const { owner } = state;
-  update({ phase: 'loading', filter: '', scanError: null, plan: null });
+  update({ phase: 'loading', filter: '', scanError: null, plan: null, claimPlans: null });
   render();
   try {
     const [entries, balance, pump] = await Promise.all([
@@ -477,6 +480,8 @@ function minFeeFor(plan) {
       required = Math.max(required, spent - received + (item.account.upfrontLamports ?? 0));
       received += item.account.lamports;
     }
+    spent += batchTipLamports({ owner: plan.owner, items: batch.items, withTip: plan.withTip ?? false });
+    required = Math.max(required, spent - received);
   }
   return required;
 }
@@ -513,20 +518,38 @@ async function review() {
   const token = ++reviewToken;
   const items = state.accounts.filter((acc) => state.selected.has(acc.address)).map((account) => ({ action: account.action, account }));
   if (items.length === 0) return;
+  update({ plan: null, claimPlans: null });
   showFlow({ title: 'Review', body: views.renderFlowSimulating() });
   openModal('flow-sheet');
   try {
     const owner = state.owner;
     const freshItems = await freshPumpItems(items, owner);
     if (token !== reviewToken || owner !== state.owner || !isModalOpen('flow-sheet')) return;
-    const plan = await prepareBurnPlan({ rpc, owner, items: freshItems });
+    const prepared = await prepareBurnPlan({ rpc, owner, items: freshItems });
     if (token !== reviewToken || owner !== state.owner || !isModalOpen('flow-sheet')) return;
-    update({ plan: { ...plan, owner } });
+    const plan = { ...prepared, owner };
+    let tipPlan = null;
+    let tipError = null;
+    if (plan.batches.length) {
+      try {
+        const claimable = plan.batches.flatMap((batch) => batch.items);
+        const tipped = await prepareBurnPlan({ rpc, owner, items: claimable, withTip: true });
+        if (tipped.failed.length || tipped.batches.flatMap((batch) => batch.items).length !== claimable.length) {
+          throw new Error('This selection could not be simulated with a tip.');
+        }
+        tipPlan = { ...tipped, owner };
+      } catch {
+        tipError = 'The tip option is currently unavailable. You can still claim without a tip.';
+      }
+    }
+    if (token !== reviewToken || owner !== state.owner || !isModalOpen('flow-sheet')) return;
+    update({ plan, claimPlans: { withoutTip: plan, withTip: tipPlan } });
     const minFeeLamports = minFeeFor(plan);
+    const minTipFeeLamports = tipPlan ? minFeeFor(tipPlan) : Infinity;
     showFlow({
       title: 'Review',
-      body: views.renderFlowReady({ plan, state, minFeeLamports }),
-      footer: views.renderFlowReadyFooter({ plan, state, minFeeLamports, onExecute: requestExecute, onConnect: connect }),
+      body: views.renderFlowReady({ plan, tipPlan, tipError, state, minFeeLamports }),
+      footer: views.renderFlowReadyFooter({ plan, tipPlan, state, minFeeLamports, minTipFeeLamports, onExecute: requestExecute, onConnect: connect }),
     });
   } catch (error) {
     if (token !== reviewToken) return;
@@ -535,16 +558,19 @@ async function review() {
   }
 }
 
-function requestExecute() {
+function requestExecute(withTip) {
   if (state.running || connecting) return;
-  const { plan } = state;
+  if (typeof withTip !== 'boolean') return;
+  const plan = withTip ? state.claimPlans?.withTip : state.claimPlans?.withoutTip;
   if (!plan) return;
+  update({ plan });
   const risk = views.burnRisk(plan.batches.flatMap((b) => b.items), state);
   if (risk.unknown === 0 && risk.valuable === 0) {
     execute();
     return;
   }
   const parts = [];
+  parts.push(plan.tipLamports ? `Your voluntary tip is ${formatSolNumber(plan.tipLamports)} SOL (20% of the quoted claim).` : 'No tip will be sent.');
   if (risk.valuable) parts.push(`${risk.valuable} ${risk.valuable === 1 ? 'token still has' : 'tokens still have'} value (≈ ${formatUsd(risk.valueUsd)} in total).`);
   if (risk.unknown) parts.push(`No price is available for ${risk.unknown} ${risk.unknown === 1 ? 'token' : 'tokens'}.`);
   parts.push('Burning is permanent and cannot be undone.');
@@ -643,7 +669,7 @@ function init() {
     // Nach einem Lauf die Liste neu lesen, egal wie das Sheet geschlossen wurde
     if (finishedRun && !state.running) {
       finishedRun = false;
-      update({ plan: null });
+      update({ plan: null, claimPlans: null });
       scan();
     }
   });

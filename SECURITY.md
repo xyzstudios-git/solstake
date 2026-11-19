@@ -17,6 +17,7 @@ Include the affected commit, a minimal reproduction using test accounts, the exp
 - The supplied HTTP server binds to loopback, restricts host/origin, validates permitted RPC parameters, bounds request and response sizes, and sends security headers. It is a local-development server, not an internet-facing deployment template.
 - API endpoint credentials belong in server configuration. Do not place them in `site/` or publish them in issues, commits, screenshots, or logs.
 - History is stored locally by wallet and reconciles known signatures. It can be missing, corrupted, unavailable, or incomplete and must not be used as a complete accounting record.
+- The voluntary 20% tip uses a fixed recipient and an explicit choice for each claim. Its transfer is included after the claim instructions in the same transaction. No-tip plans and self-recipient claims add no transfer. Signed-message checks cover the recipient and amount; failed claim transactions pay no tip, while network fees may still be charged. History verifies the expected transfer before adding the tip back to gross recovery.
 
 ## External services
 

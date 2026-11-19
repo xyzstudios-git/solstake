@@ -2,6 +2,7 @@
 // bis der tatsächliche SOL-Saldoeffekt einer Transaktion vorliegt.
 import { decodeBase58, isAddress } from './base58.js';
 import { cleanText } from './metadata.js';
+import { TIP_RECIPIENT } from './tips.js';
 
 const PREFIX = 'solburn:history:v1:';
 const STATUSES = new Set(['sent', 'confirmed', 'failed', 'expired', 'unknown']);
@@ -29,6 +30,8 @@ function normalizeEntry(entry, now) {
     throw new Error('Invalid amounts or timestamp in history.');
   }
   const actualNetLamports = entry.actualNetLamports ?? null;
+  const tipLamports = entry.tipLamports ?? 0;
+  if (!unsignedLamports(tipLamports) || tipLamports > entry.reclaimLamports) throw new Error('Invalid voluntary tip in history.');
   if (actualNetLamports !== null && !Number.isSafeInteger(actualNetLamports)) throw new Error('Invalid actual SOL balance change.');
   if (!Array.isArray(entry.sources) || entry.sources.length > 100) throw new Error('Invalid recovery sources.');
   const sources = entry.sources.map((source) => {
@@ -43,6 +46,7 @@ function normalizeEntry(entry, now) {
     status: entry.status,
     reclaimLamports: entry.reclaimLamports,
     feeLamports: entry.feeLamports,
+    tipLamports,
     actualNetLamports,
     sources,
     error: entry.error ? cleanText(entry.error, 300) : null,
@@ -60,6 +64,7 @@ function mergeEntry(previous, incoming) {
   if (previous.actualNetLamports !== null && incoming.actualNetLamports === null) {
     updated.actualNetLamports = previous.actualNetLamports;
     updated.feeLamports = previous.feeLamports;
+    updated.tipLamports = previous.tipLamports;
   }
   return updated;
 }
@@ -166,6 +171,30 @@ function previousDays(timestamp, days) {
   return day.getTime();
 }
 
+function confirmedTip(transaction, keys, owner, expected) {
+  if (owner === TIP_RECIPIENT) return 0;
+  const instructions = transaction.transaction.message.instructions;
+  if (!Array.isArray(instructions)) {
+    if (expected > 0) throw new Error('The confirmed tip instructions are unavailable.');
+    return 0; // Older untipped records remain readable.
+  }
+  const keyAt = (index) => typeof keys[index] === 'string' ? keys[index] : keys[index]?.pubkey;
+  let total = 0n;
+  for (const instruction of instructions) {
+    if (keyAt(instruction.programIdIndex) !== '11111111111111111111111111111111'
+      || !Array.isArray(instruction.accounts) || instruction.accounts.length !== 2
+      || keyAt(instruction.accounts[0]) !== owner || keyAt(instruction.accounts[1]) !== TIP_RECIPIENT) continue;
+    const data = decodeBase58(instruction.data);
+    if (data.length !== 12) continue;
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    if (view.getUint32(0, true) !== 2) continue;
+    total += view.getBigUint64(4, true);
+  }
+  if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('The confirmed tip is too large to display safely.');
+  if (expected > 0 && total !== BigInt(expected)) throw new Error('The confirmed tip does not match the recorded claim.');
+  return Number(total);
+}
+
 /** Bestätigt nur den direkten Saldoeffekt einer eigenen, selbst bezahlten Transaktion. */
 export function reconcileHistoryEntry(entry, transaction, owner) {
   if (!isAddress(owner)) throw new Error('Invalid wallet address for transaction verification.');
@@ -186,14 +215,16 @@ export function reconcileHistoryEntry(entry, transaction, owner) {
     throw new Error('The transaction SOL balances are invalid.');
   }
   const net = BigInt(meta.postBalances[0]) - BigInt(meta.preBalances[0]);
-  const gross = net + BigInt(meta.fee);
-  if (gross > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('The recovery amount is too large to display safely.');
   const failed = meta.err !== null;
+  const tipLamports = failed ? 0 : confirmedTip(transaction, keys, owner, normalized.tipLamports);
+  const gross = net + BigInt(meta.fee) + BigInt(tipLamports);
+  if (gross > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('The recovery amount is too large to display safely.');
   return {
     ...normalized,
     status: failed ? 'failed' : 'confirmed',
     reclaimLamports: failed ? 0 : Math.max(0, Number(gross)),
     feeLamports: meta.fee,
+    tipLamports,
     actualNetLamports: Number(net),
     error: failed ? cleanText(typeof meta.err === 'string' ? meta.err : JSON.stringify(meta.err), 300) : null,
   };
@@ -214,8 +245,10 @@ export function summarizeHistory(entries, { range = 'all', now = Date.now() } = 
   const paid = selected.filter((entry) => entry.status === 'confirmed' || (entry.status === 'failed' && entry.actualNetLamports !== null));
   const totalClaimedLamports = confirmed.reduce((sum, entry) => sum + BigInt(entry.reclaimLamports), 0n);
   const totalFeeLamports = paid.reduce((sum, entry) => sum + BigInt(entry.feeLamports), 0n);
-  const netLamports = paid.reduce((sum, entry) => sum + BigInt(entry.actualNetLamports ?? entry.reclaimLamports - entry.feeLamports), 0n);
-  if ([totalClaimedLamports, totalFeeLamports, netLamports].some((value) => value > BigInt(Number.MAX_SAFE_INTEGER) || value < BigInt(Number.MIN_SAFE_INTEGER))) {
+  const totalTipLamports = confirmed.reduce((sum, entry) => sum + BigInt(entry.tipLamports), 0n);
+  const netLamports = paid.reduce((sum, entry) => sum + (entry.actualNetLamports !== null
+    ? BigInt(entry.actualNetLamports) : BigInt(entry.reclaimLamports) - BigInt(entry.feeLamports) - BigInt(entry.tipLamports)), 0n);
+  if ([totalClaimedLamports, totalFeeLamports, totalTipLamports, netLamports].some((value) => value > BigInt(Number.MAX_SAFE_INTEGER) || value < BigInt(Number.MIN_SAFE_INTEGER))) {
     throw new Error('The history total is too large to display safely.');
   }
   const daily = new Map();
@@ -248,6 +281,7 @@ export function summarizeHistory(entries, { range = 'all', now = Date.now() } = 
     pendingCount: selected.filter((entry) => entry.status === 'sent' || entry.status === 'unknown').length,
     failedCount: selected.filter((entry) => entry.status === 'failed' || entry.status === 'expired').length,
     totalFeeLamports: Number(totalFeeLamports),
+    totalTipLamports: Number(totalTipLamports),
     netLamports: Number(netLamports),
     netIsEstimated: confirmed.some((entry) => entry.actualNetLamports === null),
     claimedIsEstimated: confirmed.some((entry) => entry.actualNetLamports === null),

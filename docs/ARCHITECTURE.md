@@ -43,11 +43,13 @@ Unclaimed incentives, tracked volume, non-SOL rewards, or unknown fields keep th
 
 1. `batch.js` packs the selected actions within transaction-size/item limits.
 2. `flow.js` simulates batches. Failing groups can be subdivided to isolate the failing item.
-3. The app shows expected recovery, estimated fees, burns, skipped actions, and wallet-approval information.
+3. The app prepares and simulates both no-tip and tipped alternatives for the same claimable items. It shows gross recovery, the voluntary 20% tip, estimated net amounts, burns, skipped actions, and wallet-approval information. The prominent tipped button is visual emphasis; no tip is selected for execution until its button is clicked. A failed tip simulation leaves the no-tip option available.
 4. A compatible wallet approves the prepared transaction. With `signTransaction`, the app checks the returned message using `verify.js` before sending. The fallback `signAndSendTransaction` capability sends within the wallet and cannot provide that same pre-send inspection.
 5. The app polls confirmation and records known signatures. A timeout or incomplete RPC answer is not proof that a submitted transaction never landed.
 
 The app constructs legacy transactions with one required signer. Accepted wallet changes are explicitly handled compute-budget adjustments within the additional-fee ceiling and Lighthouse check instructions. Other message changes are rejected on the app-side signing path.
+
+`tips.js` defines the fixed recipient and 2,000-basis-point policy. Tips use whole-lamport integer arithmetic, rounded down per batch. Batch sizing, simulation, and final construction use the same explicit `withTip` boolean. One System Program transfer follows that batch's claim instructions. No-tip and self-recipient claims add none. Claim failure rolls back the tip along with the rest of the transaction; network fees can still be charged.
 
 ## History and totals
 
@@ -55,7 +57,7 @@ The app constructs legacy transactions with one required signer. Accepted wallet
 
 Only claims submitted through this app after recording was introduced are present. `history-sync.js` checks bounded windows of known signatures with historical status lookup and fetches transaction details. It verifies the signature and owner fee payer before calculating the wallet's actual pre/post SOL delta and network fee. Unresolved windows rotate so older entries are not permanently skipped.
 
-`Total claimed` is confirmed gross recovery before network fees. Fees and net use actual transaction data when available; estimates stay labeled. Failed/open claims do not add to gross claimed. Time-range summaries and charts are derived from the selected locally recorded entries.
+`Total claimed` is confirmed gross recovery before voluntary tips and network fees. Reconciliation verifies the expected compiled System Program transfer to the fixed recipient before calculating gross as actual wallet delta plus fee plus tip. Failed transactions record zero paid tip. Older version-1 records default to a zero tip. Fees and net use actual transaction data when available; estimates stay labeled. Failed/open claims do not add to gross claimed. Time-range summaries and charts are derived from the selected locally recorded entries.
 
 ## Tools and deployment
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderAccounts, renderAccountSheet, renderFlowReadyFooter } from '../site/js/views.js';
+import { renderAccounts, renderAccountSheet, renderFlowReadyFooter, renderFlowReady } from '../site/js/views.js';
 import { classifyTokenAccount } from '../site/lib/accounts.js';
 import { encodeBase58 } from '../site/lib/base58.js';
 import { shortAddress } from '../site/lib/format.js';
@@ -103,25 +103,43 @@ test('wallet summary keeps its address and balance under a dedicated responsive 
   assert.match(summary.textContent, /0\.10/);
 }));
 
-test('execution labels stay concise and name destructive token burns', () => withDom(() => {
-  const cases = [
-    { accounts: [token()], text: 'Close 1 account' },
-    { accounts: [pump()], text: 'Claim rewards' },
-    { accounts: [token(), pump()], text: 'Claim rewards and close accounts' },
-    { accounts: [token('burn')], text: 'Burn 1 token' },
-    { accounts: [token('burn'), pump()], text: 'Burn tokens & claim rewards' },
-  ];
-  for (const { accounts, text } of cases) {
-    let executed = false;
-    const button = renderFlowReadyFooter({
-      plan: { batches: [{ items: accounts.map((account) => ({ account, action: account.action })) }] },
-      state: state(), minFeeLamports: 5_000, onExecute: () => { executed = true; }, onConnect() {},
-    });
-    assert.equal(button.textContent, text);
-    if (accounts.some((account) => account.action === 'burn')) assert.equal(hasClass(button, 'p-button-destructive'), true);
-    button.dispatchEvent(new Event('click'));
-    assert.equal(executed, true);
+test('claim options emphasize an explicit optional tip and keep opting out directly available', () => withDom(() => {
+  for (const accounts of [[token()], [pump()], [token(), pump()], [token('burn')], [token('burn'), pump()]]) {
+    const reclaimLamports = accounts.reduce((sum, account) => sum + account.lamports, 0);
+    const plan = { batches: [{ items: accounts.map((account) => ({ account, action: account.action })) }], reclaimLamports, networkFeeLamports: 5_000, tipLamports: 0 };
+    const tipPlan = { ...plan, tipLamports: Math.floor(reclaimLamports / 5), withTip: true };
+    const choices = [];
+    const view = renderFlowReadyFooter({ plan, tipPlan, state: state(), minFeeLamports: 5_000, minTipFeeLamports: 5_000, onExecute: (withTip) => choices.push(withTip), onConnect() {} });
+    const buttons = nodes(view).filter((node) => node.tagName === 'BUTTON');
+    assert.equal(buttons.length, 2);
+    assert.match(buttons[0].getAttribute('aria-label'), /Claim with Tip$/);
+    assert.match(buttons[1].getAttribute('aria-label'), /Claim without Tip$/);
+    assert.equal(hasClass(buttons[0], 'app-cta'), true);
+    assert.equal(hasClass(buttons[1], 'app-cta'), false);
+    assert.match(buttons[0].textContent, /20% tip included/);
+    assert.equal(buttons[0].disabled, undefined);
+    assert.equal(buttons[1].disabled, undefined);
+    buttons[0].dispatchEvent(new Event('click'));
+    buttons[1].dispatchEvent(new Event('click'));
+    assert.deepEqual(choices, [true, false], 'each choice supplies its explicit consent value');
+    if (accounts.some((account) => account.action === 'burn')) {
+      assert.match(view.textContent, /Burning is permanent/);
+      assert.match(buttons[0].getAttribute('aria-label'), /^Burn & Claim/);
+      assert.match(buttons[1].getAttribute('aria-label'), /^Burn & Claim/);
+    }
   }
+}));
+
+test('an unavailable tipped plan disables only that option, and every option checks its own upfront requirement', () => withDom(() => {
+  const plan = { batches: [{ items: [{ account: token(), action: 'close' }] }], reclaimLamports: 2_039_280, networkFeeLamports: 5_000, tipLamports: 0 };
+  const unavailable = renderFlowReadyFooter({ plan, state: state(), minFeeLamports: 5_000, onExecute() {}, onConnect() {} });
+  const buttons = nodes(unavailable).filter((node) => node.tagName === 'BUTTON');
+  assert.equal(buttons[0].disabled, true);
+  assert.equal(buttons[1].disabled, undefined);
+  const insufficient = renderFlowReadyFooter({ plan, tipPlan: { ...plan, tipLamports: 407_856 }, state: state({ balance: 5_000 }), minFeeLamports: 5_000, minTipFeeLamports: 5_001, onExecute() {}, onConnect() {} });
+  const limited = nodes(insufficient).filter((node) => node.tagName === 'BUTTON');
+  assert.equal(limited[0].disabled, true);
+  assert.equal(limited[1].disabled, undefined);
 }));
 
 test('review remains disabled before the list phase even with an existing selection', () => withDom(() => {
