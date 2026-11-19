@@ -305,12 +305,15 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
 
   await import(`../site/js/main.js?entrypoint-test=${now}`);
   assert.equal($('header-account').hidden, true);
+  assert.ok($('app-footer'), 'the landing-page footer has a stable visibility hook');
+  assert.equal($('app-footer').hidden, false, 'the start page shows the brand links');
   assert.match($('main').textContent, /Connect wallet/);
   assert.deepEqual(saved(), []);
 
   $('header-connect').click();
   await until(() => !$('header-account').hidden && $('review-button').textContent === 'Review selection (1)', 'connected wallet and scanned account');
   assert.equal(connected, 1);
+  assert.equal($('app-footer').hidden, true, 'connected account selection does not show landing-page links');
   assert.equal($('header-connect').hidden, true);
   assert.match($('main').textContent, /Empty accounts/);
   assert.equal(calls.filter((call) => call.method === 'getTokenAccountsByOwner').length, 2);
@@ -376,6 +379,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   findButton($('flow-sheet-footer'), 'Done').click();
   await until(() => !$('flow-sheet').classList.contains('active') && $('review-button').textContent === 'Select accounts', 'finished claim closes sheet and rescans');
   $('header-account').click();
+  assert.equal($('app-footer').hidden, true, 'Account history does not show landing-page links');
   await until(() => saved()[0]?.actualNetLamports !== null && $('main').textContent.includes('from confirmed transactions'), 'Account reconciles and displays on-chain totals');
   assert.equal($('header-account').getAttribute('aria-pressed'), 'true');
   assert.equal($('action-bar').hidden, true);
@@ -428,11 +432,13 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
 
   $('wallet-chip').click();
   findButton($('account-sheet-body'), 'Disconnect wallet').click();
+  assert.equal($('app-footer').hidden, false, 'disconnecting returns to the landing-page footer');
   assert.equal($('header-account').hidden, true);
   $('header-address').click();
   $('address-input').value = watchedOwner;
   $('address-submit').click();
   await until(() => $('review-button').textContent === 'Review selection (1)', 'read-only address accounts load');
+  assert.equal($('app-footer').hidden, true, 'watch-only account pages also hide landing-page links');
   $('review-button').click();
   await until(() => findButton($('flow-sheet-footer'), 'Connect wallet'), 'read-only review offers a connection instead of execution');
   assert.equal(findButton($('flow-sheet-footer'), 'Claim without Tip'), undefined);
