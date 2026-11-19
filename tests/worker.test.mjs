@@ -74,6 +74,19 @@ test('RPC forwards only supported method/parameter combinations and strips brows
   assert.equal((await app.fetch(request(payload(), { 'content-type': 'text/plain' }), env)).status, 415);
 });
 
+test('Cloudflare-compatible manual redirect mode never follows an RPC credential to another host', async () => {
+  let calls = 0;
+  const app = createWorker({ fetchImpl: async (_url, init) => {
+    calls++;
+    assert.equal(init.redirect, 'manual', 'Cloudflare Workers does not implement redirect:error');
+    return new Response(null, { status: 302, headers: { location: 'https://other.example/' } });
+  } });
+  assert.equal((await app.fetch(request(), env)).status, 502);
+  assert.equal(calls, 1);
+  const working = createWorker({ fetchImpl: async (_url, init) => init.redirect === 'manual' ? upstream() : (() => { throw new TypeError('Unsupported redirect mode'); })() });
+  assert.equal((await working.fetch(request(), env)).status, 200);
+});
+
 test('RPC bounds streamed request/response bytes and never returns provider errors or secrets', async () => {
   let calls = 0;
   const app = createWorker({ maxBodyBytes: 256, maxResponseBytes: 128, fetchImpl: async () => { calls++; return new Response('x'.repeat(129), { headers: { 'content-type': 'application/json' } }); } });
