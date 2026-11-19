@@ -65,7 +65,7 @@ test('RPC forwards only supported method/parameter combinations and strips brows
   assert.equal(response.status, 200);
   assert.equal((await response.json()).result.value, 42);
   assert.equal(seen[0].url, env.SOLSTAKE_RPC_URL);
-  assert.equal(seen[0].init.redirect, 'error');
+  assert.equal(seen[0].init.redirect, 'manual');
   assert.deepEqual(seen[0].init.headers, { 'content-type': 'application/json' });
   for (const body of [payload('getProgramAccounts'), payload('constructor'), payload('getBalance', []), '[{}]', 'invalid']) {
     assert.ok([400, 403].includes((await app.fetch(request(body), env)).status));
