@@ -29,6 +29,8 @@ Changes are recorded by release. Unreleased work is not a published or productio
 
 ### Changed
 
+- Adopted the newly supplied open-arc Solstake logo throughout the app, with a fitted 32 px header mark and the existing live-text wordmark.
+
 - Replaced footer cards with borderless brand links and the original transparent XYZ STUDIOS website wordmark.
 
 - Renamed the product to Solstake; previous server environment names remain compatible.

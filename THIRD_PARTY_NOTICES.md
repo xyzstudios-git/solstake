@@ -11,7 +11,7 @@ The bundled Phosphor CSS has been adjusted to reference only the included WOFF2 
 
 `site/apple-ui.css` is the local interface adaptation used by this project. No Apple font files or SF Symbols are included. The interface uses the browser's system-font stack.
 
-The application icon and editable SVG in `design/branding/` were supplied for this project. The inline Solana mark identifies the Solana network; third-party names and marks remain the property of their respective owners. The project's code license does not grant rights to third-party trademarks.
+The application logo was supplied for this project in an Affinity SVG artboard. Its colored version is embedded raster artwork, retained without resampling in `design/branding/source-logo.svg` after fitting transparent margins. `site/icon.svg` holds a 512 px derivative for web display. These two SVG containers are not vector masters. The inline Solana mark identifies the Solana network; third-party names and marks remain the property of their respective owners. The project's code license does not grant rights to third-party trademarks.
 
 Development dependencies are installed from the exact versions and integrity hashes in `package-lock.json`. They are not shipped to the browser or needed by the production Node server. Their own licenses are included by their packages.
 

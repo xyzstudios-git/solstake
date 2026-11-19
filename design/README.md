@@ -9,11 +9,13 @@ This repository includes the complete implemented visual interface and its local
 | Asset | Source | Use |
 | --- | --- | --- |
 | Application mark | [`../site/icon.svg`](../site/icon.svg) | Header, start screen, browser icon |
-| Editable source mark | [`branding/source-logo.svg`](branding/source-logo.svg) | Standalone vector source supplied for this project |
-| Design credit logo | [`branding/xyz-studios.svg`](branding/xyz-studios.svg), [`../site/assets/xyz-studios.svg`](../site/assets/xyz-studios.svg) | Supplied XYZ STUDIOS mark; artwork preserved, viewBox fitted to remove empty artboard space |
+| Supplied color mark | [`branding/source-logo.svg`](branding/source-logo.svg) | Original gradient artwork extracted from the supplied Affinity SVG artboard, with transparent margins fitted |
+| Design credit logo | [`branding/xyz-studios.svg`](branding/xyz-studios.svg), [`../site/assets/xyz-studios.svg`](../site/assets/xyz-studios.svg) | Original transparent horizontal wordmark from the XYZ STUDIOS website |
 | Earlier layout preview | [`../docs/images/preview.jpg`](../docs/images/preview.jpg) | Archived layout reference; predates the replacement logo |
 
-Both SVGs contain the same supplied 256 × 256 mark, with its original geometry and a continuous Solana-style gradient from purple (`#9945FF`) through turquoise (`#43B4CA`) to green (`#19FB9B`), matching the inline SOL symbol. A viewBox allows it to scale in the header, start screen and browser icon. The Affinity document for the earlier logo is preserved separately as a private historical source because it contains workstation metadata. It is excluded from Git and the source archive; the current editable SVG remains included.
+The current logo is the supplied pair of open circular arcs with the original purple-to-green gradient. The supplied Affinity SVG is a multi-variant artboard; its colored version is an embedded transparent PNG. `branding/source-logo.svg` retains those colored pixels without resampling, crops only the transparent exterior and centers the mark within a square canvas. The application uses a 512 × 512 optimized derivative in `site/icon.svg`, shared by the 32 px header mark, start screen and favicon. These SVG containers hold raster artwork and are not editable vector masters. No font or wordmark from the artboard was imported; the existing Solstake system-font wordmark remains live text.
+
+The original multi-variant artboard remains in the owner's supplied file outside the repository. Both prior application-logo files have been replaced by the current artwork.
 
 ## Interface layers
 
@@ -32,7 +34,7 @@ Styles are loaded in this order: Puppertino, `apple-ui.css`, `app.css`, then `ac
 
 | Role | Current value |
 | --- | --- |
-| Logo gradient | `#9945FF` → `#43B4CA` → `#19FB9B` |
+| Logo gradient | Original colors from the supplied artwork |
 | Brand purple | `#9945FF` |
 | Indigo | `#8752F3` |
 | Teal | `#3FBAC8` |
@@ -40,7 +42,7 @@ Styles are loaded in this order: Puppertino, `apple-ui.css`, `app.css`, then `ac
 | Dark page | `#0A0B0F` |
 | Light page | `#F5F5F8` |
 
-The logo uses the same purple-to-green gradient colors as the inline SOL symbol. SOL amounts and accent controls retain their existing gradients. Controls use the existing accessible contrast treatment in the CSS. Status is conveyed with text and icons as well as color.
+The supplied logo retains its own purple-to-green gradient. SOL amounts and accent controls retain their existing gradients. Controls use the existing accessible contrast treatment in the CSS. Status is conveyed with text and icons as well as color.
 
 The typography uses the existing system-font stack. No new webfont, Apple font file, or SF Symbols package is included. Phosphor supplies the icon glyphs.
 
@@ -62,4 +64,4 @@ Keep the supplied logo geometry and current typography. Show pending claims sepa
 
 The recorded browser checks and their limits are in [`../docs/VERIFICATION.md`](../docs/VERIFICATION.md). Vendor licensing and mark ownership are recorded in [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
-The compact footer contains three equal-width, 80 px high links in one shared grid: X, the XYZ STUDIOS website and the Solstake repository. All three use the same surface, border, 36 px logo frame, caption style, focus treatment and hover state. The X and GitHub marks are original white SVGs from their official brand toolkits, displayed at 36 px; the supplied wide studio wordmark fits the same frame without stretching. The footer adapts to light/dark appearance and reserves room for the mobile claim control.
+The compact footer contains three equal-width borderless links in one grid: X, the XYZ STUDIOS website and the Solstake repository. All three share the caption and interaction treatment. X and the original GitHub mark use 32 px frames; the transparent studio wordmark fits the same row without stretching. “Designed by:” appears above the studio wordmark; “GitHub” labels the repository link. The footer adapts to light/dark appearance and reserves room for the mobile claim control.

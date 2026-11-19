@@ -178,8 +178,9 @@ body.app-body::before {
 .app-brand__mark {
   display: block;
   flex: none;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .app-wallet-chip {
