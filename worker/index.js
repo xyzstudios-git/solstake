@@ -101,11 +101,12 @@ export function createWorker({
           if (!Array.isArray(params) || !check(params)) return error(400, 'Parameters not allowed', id);
           try {
             const upstream = await fetchImpl(upstreamUrl.toString(), {
-              method: 'POST', redirect: 'error', headers: { 'content-type': 'application/json' },
+              method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/json' },
               body: JSON.stringify({ jsonrpc: '2.0', id, method: payload.method, params }),
               signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
             });
             if (!upstream.ok || !/^application\/json\b/i.test(upstream.headers.get('content-type') ?? '')) {
+              console.warn('Solstake RPC HTTP failure', upstream.status);
               void upstream.body?.cancel().catch(() => {});
               return error(502, 'Solana RPC unavailable', id);
             }
