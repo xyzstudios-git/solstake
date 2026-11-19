@@ -5,7 +5,7 @@ import { WSOL_MINT, classifyAll } from '../lib/accounts.js';
 import { fetchTokenNames } from '../lib/metadata.js';
 import { fetchUsdPrices } from '../lib/prices.js';
 import { prepareBurnPlan, executeBurnPlan } from '../lib/flow.js';
-import { scanPumpRewards, pumpRewardInstructions } from '../lib/pump-rewards.js';
+import { scanPumpRewards, refreshPumpRewardItems } from '../lib/pump-rewards.js';
 import { isAddress } from '../lib/base58.js';
 import { BASE_FEE_LAMPORTS, priorityFeeLamports } from '../lib/fees.js';
 import { shortAddress, formatUsd, formatSolNumber } from '../lib/format.js';
@@ -547,33 +547,37 @@ function showFlow({ title, body, footer, closable = true }) {
   }
 }
 
-async function freshPumpItems(items, owner) {
-  if (!items.some((item) => item.action === 'claim-pump')) return items;
-  const fresh = await scanPumpRewards({ rpc, owner });
-  const byAddress = new Map(fresh.accounts.map((account) => [account.address, account]));
-  return items.map((item) => {
-    if (item.action !== 'claim-pump') return item;
-    const account = byAddress.get(item.account.address);
-    if (!account) throw new Error('Pump rewards have changed. Reload your accounts and review again.');
-    return { action: item.action, account };
-  });
+function review() {
+  return prepareReview();
 }
 
-async function review() {
+async function prepareReview({ validation = null, originalItems = null, failures = [], notice = null } = {}) {
   if (state.running || connecting || state.phase !== 'list' || accountVisible || state.scanError) return;
   const token = ++reviewToken;
-  const items = state.accounts.filter((acc) => state.selected.has(acc.address)).map((account) => ({ action: account.action, account }));
+  const items = originalItems ?? state.accounts.filter((acc) => state.selected.has(acc.address)).map((account) => ({ action: account.action, account }));
   if (items.length === 0) return;
   update({ plan: null, claimPlans: null });
   showFlow({ title: 'Review', body: views.renderFlowSimulating() });
   openModal('flow-sheet');
   try {
     const owner = state.owner;
-    const freshItems = await freshPumpItems(items, owner);
+    const fresh = validation ?? await refreshPumpRewardItems({ rpc, owner, items });
     if (token !== reviewToken || owner !== state.owner || !isModalOpen('flow-sheet')) return;
-    const prepared = await prepareBurnPlan({ rpc, owner, items: freshItems });
+    const reviewedPump = new Set(items.filter((item) => item.action === 'claim-pump').map((item) => item.account.address));
+    if (reviewedPump.size) {
+      const available = new Map(fresh.items.filter((item) => item.action === 'claim-pump').map((item) => [item.account.address, item.account]));
+      const selected = new Set(state.selected);
+      for (const address of reviewedPump) if (!available.has(address)) selected.delete(address);
+      update({
+        accounts: state.accounts.flatMap((account) => reviewedPump.has(account.address) ? available.has(account.address) ? [available.get(account.address)] : [] : [account]),
+        selected,
+        pumpWarnings: [...new Set([...fresh.warnings, ...fresh.skipped.map((entry) => entry.error)])],
+      });
+      render();
+    }
+    const prepared = await prepareBurnPlan({ rpc, owner, items: fresh.items });
     if (token !== reviewToken || owner !== state.owner || !isModalOpen('flow-sheet')) return;
-    const plan = { ...prepared, owner };
+    const plan = { ...prepared, owner, failed: [...failures, ...fresh.skipped, ...prepared.failed] };
     let tipPlan = null;
     let tipError = null;
     if (plan.batches.length) {
@@ -594,7 +598,7 @@ async function review() {
     const minTipFeeLamports = tipPlan ? minFeeFor(tipPlan) : Infinity;
     showFlow({
       title: 'Review',
-      body: views.renderFlowReady({ plan, tipPlan, tipError, state, minFeeLamports }),
+      body: views.renderFlowReady({ plan, tipPlan, tipError, state, minFeeLamports, notice: notice ?? (fresh.requiresReview ? 'Pump rewards changed. Review the updated selection before continuing.' : null) }),
       footer: views.renderFlowReadyFooter({ plan, tipPlan, state, minFeeLamports, minTipFeeLamports, onExecute: requestExecute, onConnect: connect }),
     });
   } catch (error) {
@@ -634,6 +638,7 @@ async function execute() {
   }
   if (!isModalOpen('flow-sheet')) openModal('flow-sheet');
   let submitted = false;
+  let reviewReplaced = false;
   let statuses = plan.batches.map(() => ({ status: 'waiting', signature: null, error: null }));
   const draw = (done) =>
     showFlow({
@@ -649,15 +654,22 @@ async function execute() {
   draw(false);
   try {
     const items = plan.batches.flatMap((batch) => batch.items);
-    const freshItems = await freshPumpItems(items, owner);
-    for (const [index, item] of items.entries()) {
-      if (item.action !== 'claim-pump') continue;
-      const fresh = freshItems[index].account;
-      if (fresh.lamports !== item.account.lamports
-        || JSON.stringify(pumpRewardInstructions({ owner, account: fresh })) !== JSON.stringify(pumpRewardInstructions({ owner, account: item.account }))) {
-        throw new Error('Pump rewards have changed since the preview. Please review again.');
+    const fresh = await refreshPumpRewardItems({ rpc, owner, items });
+    if (fresh.requiresReview) {
+      // Nothing has been signed or sent. Replace the preview and require a new explicit choice.
+      reviewReplaced = true;
+      finishedRun = false;
+      update({ running: false, plan: null, claimPlans: null });
+      renderHeader();
+      renderActionBar();
+      applyPendingWalletChange();
+      if (state.owner === owner && isModalOpen('flow-sheet')) {
+        await prepareReview({ validation: fresh, originalItems: items, failures: plan.failed,
+          notice: 'Pump rewards changed. Review the updated selection before continuing.' });
       }
+      return;
     }
+    // A higher reward with identical instructions may proceed using the original quote and tip.
     submitted = true;
     await executeBurnPlan({
       rpc,
@@ -680,10 +692,12 @@ async function execute() {
       return { ...s, status, error: message(error) };
     });
   } finally {
-    finishedRun = true;
     update({ running: false });
     renderHeader();
-    draw(true);
+    if (!reviewReplaced) {
+      finishedRun = true;
+      draw(true);
+    }
     applyPendingWalletChange();
   }
 }

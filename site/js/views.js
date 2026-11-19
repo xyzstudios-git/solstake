@@ -437,13 +437,14 @@ function sheetHero(labelText, lamports) {
   );
 }
 
-export function renderFlowReady({ plan, tipPlan = null, tipError = null, state, minFeeLamports }) {
+export function renderFlowReady({ plan, tipPlan = null, tipError = null, state, minFeeLamports, notice = null }) {
   const items = plan.batches.flatMap((b) => b.items);
   const burns = items.filter((item) => item.action === 'burn').length;
   const approvals = Math.ceil(plan.batches.length / ROUND_SIZE);
   const pumpItems = items.filter((item) => item.action === 'claim-pump');
   const closes = items.length - pumpItems.length;
   const parts = [];
+  if (notice) parts.push(h('div', { class: 'app-note app-note-strong', role: 'status', text: notice }));
 
   if (plan.batches.length === 0) {
     parts.push(h('div', { class: 'app-note app-note-strong', text: 'Nothing here can be processed. See the reasons below.' }));

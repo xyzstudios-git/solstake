@@ -222,3 +222,47 @@ export function pumpRewardInstructions({ owner, account }) {
   if (!plan || plan.owner !== owner || account.owner !== owner) throw new Error('Scan Pump rewards again for this wallet.');
   return copyInstructions(plan.instructions);
 }
+
+/** Refresh only reviewed rewards; changes to instructions or a lower quote need fresh approval. */
+export async function refreshPumpRewardItems({ rpc, owner, items }) {
+  const selected = items.filter((item) => item.action === 'claim-pump');
+  if (!selected.length) return { items, skipped: [], requiresReview: false, warnings: [] };
+  // Validate the original identity before catching RPC errors: forged plans must still fail.
+  const instructions = new Map(selected.map((item) => [item, pumpRewardInstructions({ owner, account: item.account })]));
+  let fresh;
+  try {
+    fresh = await scanPumpRewards({ rpc, owner });
+  } catch (error) {
+    const reason = `Pump rewards could not be checked. ${error instanceof Error ? error.message : String(error)}`;
+    return {
+      items: items.filter((item) => item.action !== 'claim-pump'),
+      skipped: selected.map((item) => ({ item, error: reason })),
+      requiresReview: true,
+      warnings: [reason],
+    };
+  }
+  const byAddress = new Map(fresh.accounts.map((account) => [account.address, account]));
+  const refreshed = [];
+  const skipped = [];
+  let requiresReview = false;
+  for (const item of items) {
+    if (item.action !== 'claim-pump') {
+      refreshed.push(item);
+      continue;
+    }
+    const account = byAddress.get(item.account.address);
+    if (!account) {
+      const reason = fresh.warnings.filter((warning) => warning.startsWith(item.account.title + ':')).join(' ')
+        || `${item.account.title}: This reward is not currently available and was excluded from this review.`;
+      skipped.push({ item, error: reason });
+      requiresReview = true;
+      continue;
+    }
+    const nextInstructions = pumpRewardInstructions({ owner, account });
+    if (account.lamports < item.account.lamports || JSON.stringify(nextInstructions) !== JSON.stringify(instructions.get(item))) {
+      requiresReview = true;
+    }
+    refreshed.push({ action: item.action, account });
+  }
+  return { items: refreshed, skipped, requiresReview, warnings: fresh.warnings };
+}
