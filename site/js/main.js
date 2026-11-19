@@ -1,5 +1,5 @@
 // Leergut: Steuerung. Zustand ist unveränderlich; jede Änderung erzeugt einen neuen Stand.
-import { watchWallets, connectWallet, createSigner, disconnectWallet, onWalletChange } from '../lib/wallet.js';
+import { watchWallets, connectWallet, createSigner, disconnectWallet, onWalletChange, isWalletAuthorizationError, SOLANA_MAINNET } from '../lib/wallet.js';
 import { createRpc } from '../lib/rpc.js';
 import { WSOL_MINT, classifyAll } from '../lib/accounts.js';
 import { fetchTokenNames } from '../lib/metadata.js';
@@ -303,23 +303,44 @@ async function connectTo(wallet) {
 }
 
 function handleWalletChange(wallet, event) {
-  if (!event || !('accounts' in event) || state.wallet !== wallet) return;
+  if (!event || (!('accounts' in event) && !('features' in event)) || state.wallet !== wallet) return;
   if (state.running || connecting) {
     pendingWalletChange = { wallet, event };
     return;
   }
-  const next = event.accounts?.[0];
+  const accounts = 'accounts' in event ? event.accounts : wallet.accounts;
+  const next = Array.isArray(accounts) ? accounts.find((account) => account?.chains?.includes?.(SOLANA_MAINNET)) : null;
   if (!next || !isAddress(next.address)) {
     closeModal('flow-sheet');
     closeModal('confirm-alert');
     resetToStart();
     return;
   }
+  let signer;
+  try {
+    signer = createSigner(wallet, next);
+  } catch (error) {
+    closeModal('flow-sheet');
+    closeModal('confirm-alert');
+    resetToStart();
+    showError('Reconnect your wallet', message(error));
+    return;
+  }
   if (next.address !== state.owner) {
     closeModal('flow-sheet');
     closeModal('confirm-alert');
-    changeOwner({ account: next, signer: createSigner(wallet, next), owner: next.address });
+    changeOwner({ account: next, signer, owner: next.address });
     scan();
+  } else {
+    const modeChanged = signer.mode !== state.signer?.mode;
+    update({ account: next, signer });
+    if (modeChanged) {
+      reviewToken += 1;
+      update({ plan: null, claimPlans: null });
+      closeModal('flow-sheet');
+      closeModal('confirm-alert');
+    }
+    renderHeader();
   }
 }
 
@@ -381,6 +402,27 @@ async function switchWallet() {
   // Schlägt das Trennen fehl, ist das egal: die neue Verbindung ersetzt die alte ohnehin.
   if (!readOnly && wallet) await disconnectWallet(wallet).catch(() => null);
   connect();
+}
+
+async function reconnectWallet() {
+  if (state.running || connecting) return;
+  const { wallet } = state;
+  if (!wallet) { connect(); return; }
+  connecting = true;
+  resetToStart();
+  closeModal('flow-sheet');
+  closeModal('confirm-alert');
+  renderHeader();
+  try {
+    await disconnectWallet(wallet);
+  } catch (error) {
+    showError('Unable to reconnect', message(error));
+    return;
+  } finally {
+    connecting = false;
+    renderHeader();
+  }
+  await connectTo(wallet);
 }
 
 function openAccountSheet() {
@@ -593,7 +635,7 @@ async function execute() {
     showFlow({
       title: done ? 'Done' : 'Processing',
       body: views.renderFlowProgress({ plan, statuses }),
-      footer: views.renderFlowProgressFooter({ done, onDone: finishRun }),
+      footer: views.renderFlowProgressFooter({ done, onDone: finishRun, onReconnect: done && statuses.some((status) => isWalletAuthorizationError(status.error)) ? reconnectWallet : undefined }),
       closable: done,
     });
   update({ running: true });

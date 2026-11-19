@@ -6,6 +6,7 @@ import { readFirstSignature, hasSignature } from './tx.js';
 import { checkReturnedTransaction } from './verify.js';
 import { toBase64 } from './bytes.js';
 import { batchTipLamports } from './tips.js';
+import { isWalletAuthorizationError, WALLET_AUTHORIZATION_MESSAGE } from './wallet.js';
 
 // Fehlercodes der Token-Programme (TokenError)
 const TOKEN_ERRORS = Object.freeze({
@@ -38,6 +39,7 @@ export function explainError(err, logs = []) {
 }
 
 function walletMessage(error) {
+  if (isWalletAuthorizationError(error)) return WALLET_AUTHORIZATION_MESSAGE;
   const text = error instanceof Error ? error.message : String(error);
   if (/reject|denied|cancel|declin|abgelehnt/i.test(text)) return 'Rejected in the wallet. Nothing was sent.';
   return `The wallet reported an error: ${text}`;

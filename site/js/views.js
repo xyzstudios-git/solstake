@@ -598,9 +598,9 @@ export function renderFlowProgress({ plan, statuses }) {
   ];
 }
 
-export function renderFlowProgressFooter({ done, onDone }) {
+export function renderFlowProgressFooter({ done, onDone, onReconnect }) {
   if (!done) return h('div', { class: 'app-note', text: 'Keep this page open until all transactions are confirmed.' });
-  return h('button', { class: 'p-button p-button-touch-large p-button-primary app-cta app-wide', type: 'button', on: { click: onDone } }, 'Done');
+  return h('button', { class: 'p-button p-button-touch-large p-button-primary app-cta app-wide', type: 'button', on: { click: onReconnect ?? onDone } }, onReconnect ? 'Reconnect wallet' : 'Done');
 }
 
 export function renderFieldError(text) {

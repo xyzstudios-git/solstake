@@ -62,12 +62,42 @@ export function watchWallets(win, onChange) {
   };
 }
 
+export const WALLET_AUTHORIZATION_MESSAGE = 'Wallet account access is not authorized. Reconnect your wallet, then review and claim again.';
+
+export function isWalletAuthorizationError(error) {
+  const text = typeof error === 'string' ? error : error?.message ?? '';
+  return error?.code === 4100 || error?.cause?.code === 4100
+    || text === WALLET_AUTHORIZATION_MESSAGE
+    || /requested method.*account.*not.*authori[sz]ed/i.test(text);
+}
+
+function authorizationError() {
+  return Object.assign(new Error(WALLET_AUTHORIZATION_MESSAGE), { code: 4100 });
+}
+
+const isMainnetAccount = (account) => isAddress(account?.address) && account?.chains?.includes?.(SOLANA_MAINNET);
+
+function accountFeature(wallet, account, name) {
+  const feature = wallet?.features?.[name];
+  const method = name === SIGN ? 'signTransaction' : 'signAndSendTransaction';
+  return Array.isArray(account?.features) && account.features.includes(name)
+    && typeof feature?.[method] === 'function' && supportsLegacy(feature) ? feature : null;
+}
+
+// Resolve by the reviewed owner; never substitute a different authorized address.
+function currentAccount(wallet, address) {
+  const accounts = wallet.accounts;
+  const account = Array.isArray(accounts) ? accounts.find((candidate) => candidate?.address === address) : null;
+  if (!isMainnetAccount(account)) throw authorizationError();
+  return account;
+}
+
 /** Fragt die Wallet nach Freigabe und liefert das Solana-Konto. */
 export async function connectWallet(wallet) {
   const result = await wallet.features[CONNECT].connect();
-  const accounts = result?.accounts?.length ? result.accounts : wallet.accounts;
-  const account = accounts?.find((a) => a?.chains?.includes?.(SOLANA_MAINNET)) ?? accounts?.[0];
-  if (!account || !isAddress(account.address)) throw new Error('The wallet did not share a Solana account.');
+  const accounts = Array.isArray(result?.accounts) ? result.accounts : wallet.accounts;
+  const account = Array.isArray(accounts) ? accounts.find(isMainnetAccount) : null;
+  if (!account || (!accountFeature(wallet, account, SIGN) && !accountFeature(wallet, account, SIGN_AND_SEND))) throw authorizationError();
   return account;
 }
 
@@ -86,11 +116,15 @@ export function onWalletChange(wallet, listener) {
  * Transaktionen); sonst „signAndSendTransaction“ (die Wallet sendet selbst).
  */
 export function createSigner(wallet, account) {
-  const sign = wallet.features[SIGN];
-  if (typeof sign?.signTransaction === 'function' && supportsLegacy(sign)) {
+  const address = account?.address;
+  const authorized = currentAccount(wallet, address);
+  if (accountFeature(wallet, authorized, SIGN)) {
     return {
       mode: 'sign',
       async signTransactions(list) {
+        const account = currentAccount(wallet, address);
+        const sign = accountFeature(wallet, account, SIGN);
+        if (!sign) throw authorizationError();
         const outputs = await sign.signTransaction(...list.map((transaction) => ({ account, transaction, chain: SOLANA_MAINNET })));
         return outputs.map((output) => {
           if (!(output?.signedTransaction instanceof Uint8Array)) throw new Error('The wallet did not return a transaction.');
@@ -99,11 +133,13 @@ export function createSigner(wallet, account) {
       },
     };
   }
-  const send = wallet.features[SIGN_AND_SEND];
-  if (typeof send?.signAndSendTransaction === 'function' && supportsLegacy(send)) {
+  if (accountFeature(wallet, authorized, SIGN_AND_SEND)) {
     return {
       mode: 'signAndSend',
       async signAndSend(transaction) {
+        const account = currentAccount(wallet, address);
+        const send = accountFeature(wallet, account, SIGN_AND_SEND);
+        if (!send) throw authorizationError();
         const [output] = await send.signAndSendTransaction({
           account,
           transaction,
@@ -115,5 +151,5 @@ export function createSigner(wallet, account) {
       },
     };
   }
-  throw new Error('This wallet cannot sign transactions.');
+  throw authorizationError();
 }
