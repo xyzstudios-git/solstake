@@ -111,3 +111,15 @@ test('rate limits isolate users, expire, and cap concurrent provider requests', 
   assert.equal((await first).status, 200);
   assert.equal((await busy.fetch(request(payload('constructor')), env)).status, 403);
 });
+
+test('incomplete uploads time out and release the provider capacity', { timeout: 1000 }, async () => {
+  let cancelled = false;
+  const body = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('{')); }, cancel() { cancelled = true; } });
+  const app = createWorker({ bodyTimeoutMs: 20, maxConcurrent: 1, fetchImpl: async () => upstream() });
+  const slow = new Request(`${origin}/rpc`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body, duplex: 'half' });
+  const pending = app.fetch(slow, env);
+  const result = await Promise.race([pending, new Promise((resolve) => setTimeout(() => resolve({ status: 599 }), 100))]);
+  assert.equal(result.status, 408);
+  assert.equal(cancelled, true);
+  assert.equal((await app.fetch(request(), env)).status, 200);
+});
