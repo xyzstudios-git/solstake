@@ -461,7 +461,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   findButton($('flow-sheet-footer'), 'Claim with Tip').click();
   await until(() => saved().length === 2 && saved().some((entry) => entry.status === 'sent'), 'second claim has been submitted');
   assert.equal(submittedTip, Math.floor(emptyAccount.account.lamports / 5));
-  assert.equal(saved()[0].tipLamports, submittedTip);
+  assert.equal(saved().find((entry) => entry.signature === submittedSignature).tipLamports, submittedTip);
   const chipDuringClaim = $('wallet-chip').textContent;
   walletChange({ accounts: [{ ...walletAccount, address: nextOwner }] });
   walletChange({ features: wallet.features }); // Must not discard the queued account switch.
@@ -492,8 +492,9 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.equal(submittedTip, 0);
   assert.equal(submittedPumpLamports, 0);
   assert.equal(signed, signedBeforeRefresh + 1);
+  const scansBeforeSubsetClose = calls.filter((call) => call.method === 'getBalance').length;
   findButton($('flow-sheet-footer'), 'Done').click();
-  await until(() => !$('header-refresh').disabled, 'the successful subset is rescanned');
+  await until(() => calls.filter((call) => call.method === 'getBalance').length > scansBeforeSubsetClose && !$('header-refresh').disabled, 'the successful subset is rescanned');
 
   for (const withTip of [false, true]) {
     pumpAvailable = true;
@@ -512,8 +513,9 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
     assert.equal(signed, before + 1);
     assert.equal(submittedPumpLamports, 150_000);
     assert.equal(submittedTip, expectedTip, 'growth never increases an already agreed tip or adds a tip to opt-out');
+    const scansBeforeGrowthClose = calls.filter((call) => call.method === 'getBalance').length;
     findButton($('flow-sheet-footer'), 'Done').click();
-    await until(() => !$('header-refresh').disabled, 'growth claim is rescanned');
+    await until(() => calls.filter((call) => call.method === 'getBalance').length > scansBeforeGrowthClose && !$('header-refresh').disabled, 'growth claim is rescanned');
   }
 
 });
