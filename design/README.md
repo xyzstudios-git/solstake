@@ -10,9 +10,9 @@ This repository includes the complete implemented visual interface and its local
 | --- | --- | --- |
 | Application mark | [`../site/icon.svg`](../site/icon.svg) | Header, start screen, browser icon |
 | Editable source mark | [`branding/source-logo.svg`](branding/source-logo.svg) | Standalone vector source supplied for this project |
-| Neutral application preview | [`../docs/images/preview.jpg`](../docs/images/preview.jpg) | README illustration without wallet information |
+| Earlier layout preview | [`../docs/images/preview.jpg`](../docs/images/preview.jpg) | Archived layout reference; predates the replacement logo |
 
-Both SVGs are self-contained. The original Affinity document is preserved separately as a private local design source because it contains workstation metadata. It is excluded from Git and the source archive; the editable SVG remains included.
+Both SVGs contain the same supplied 256 × 256 mark, with its original geometry and gray fill (`#545454`). A viewBox allows it to scale in the header, start screen and browser icon. The Affinity document for the earlier logo is preserved separately as a private historical source because it contains workstation metadata. It is excluded from Git and the source archive; the current editable SVG remains included.
 
 ## Interface layers
 
@@ -31,6 +31,7 @@ Styles are loaded in this order: Puppertino, `apple-ui.css`, `app.css`, then `ac
 
 | Role | Current value |
 | --- | --- |
+| Logo gray | `#545454` |
 | Brand purple | `#9945FF` |
 | Indigo | `#8752F3` |
 | Teal | `#3FBAC8` |
@@ -38,7 +39,7 @@ Styles are loaded in this order: Puppertino, `apple-ui.css`, `app.css`, then `ac
 | Dark page | `#0A0B0F` |
 | Light page | `#F5F5F8` |
 
-The gradient is used for the supplied mark and SOL amounts. Controls use the existing accessible contrast treatment in the CSS. Status is conveyed with text and icons as well as color.
+The logo retains its supplied gray fill. The gradient remains on SOL amounts and accent controls. Controls use the existing accessible contrast treatment in the CSS. Status is conveyed with text and icons as well as color.
 
 The typography uses the existing system-font stack. No new webfont, Apple font file, or SF Symbols package is included. Phosphor supplies the icon glyphs.
 

@@ -6,8 +6,6 @@
 
 <p align="center"><a href="#quick-start">Run locally</a> · <a href="design/README.md">Design & branding</a> · <a href="docs/ARCHITECTURE.md">Architecture</a> · <a href="docs/VERIFICATION.md">Verification</a></p>
 
-![Solfund interface](docs/images/preview.jpg)
-
 Solfund is a local Solana app for reclaiming account rent, burning unwanted tokens, and claiming supported Pump.fun and PumpSwap cashback. It uses an English interface with locally bundled UI assets. Solfund adds no service fee; Solana network fees still apply.
 
 This is a development project. Passing tests does not make it an audited or production-ready wallet application. See [verification and limits](docs/VERIFICATION.md).
