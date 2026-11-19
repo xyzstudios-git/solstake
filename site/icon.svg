@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="logo-title">
   <title id="logo-title">Solfund logo</title>
-  <path d="M 144 256 L 27.598 256 L 144 139.598 Z M 256 207.5 L 200 256 L 200 56 L 0 56 L 48 0 L 256 0 Z M 0 204.402 L 0 112 L 92.402 112 Z" fill="rgb(84, 84, 84)"/>
+  <defs>
+    <linearGradient id="solana-gradient" x1="0" y1="256" x2="256" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9945FF"/>
+      <stop offset="0.55" stop-color="#43B4CA"/>
+      <stop offset="1" stop-color="#19FB9B"/>
+    </linearGradient>
+  </defs>
+  <path d="M 144 256 L 27.598 256 L 144 139.598 Z M 256 207.5 L 200 256 L 200 56 L 0 56 L 48 0 L 256 0 Z M 0 204.402 L 0 112 L 92.402 112 Z" fill="url(#solana-gradient)"/>
 </svg>
