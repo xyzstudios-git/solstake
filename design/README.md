@@ -62,4 +62,4 @@ Keep the supplied logo geometry and current typography. Show pending claims sepa
 
 The recorded browser checks and their limits are in [`../docs/VERIFICATION.md`](../docs/VERIFICATION.md). Vendor licensing and mark ownership are recorded in [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
-The compact footer follows the supplied reference: X on the left, a small “Design by” credit with the supplied XYZ STUDIOS logo in the center, and the direct repository link labeled “Solstake” on the right. Social links have 44 px touch targets. The credit adapts to light and dark appearance and the footer reserves room for the mobile claim control.
+The compact footer contains three equal-width, 80 px high links in one shared grid: X, the XYZ STUDIOS website and the Solstake repository. All three use the same surface, border, 36 px logo frame, caption style, focus treatment and hover state. The X and GitHub marks are original white SVGs from their official brand toolkits, displayed at 36 px; the supplied wide studio wordmark fits the same frame without stretching. The footer adapts to light/dark appearance and reserves room for the mobile claim control.
