@@ -1,4 +1,4 @@
-# Contributing to Solfund
+# Contributing to Solstake
 
 ## Development setup
 

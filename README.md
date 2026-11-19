@@ -1,12 +1,12 @@
-<p align="center"><img src="site/icon.svg" width="72" alt="Solfund logo"></p>
+<p align="center"><img src="site/icon.svg" width="72" alt="Solstake logo"></p>
 
-<h1 align="center">Solfund</h1>
+<h1 align="center">Solstake</h1>
 
 <p align="center">Get your SOL back.</p>
 
 <p align="center"><a href="#quick-start">Run locally</a> · <a href="design/README.md">Design & branding</a> · <a href="docs/ARCHITECTURE.md">Architecture</a> · <a href="docs/VERIFICATION.md">Verification</a></p>
 
-Solfund is a local Solana app for reclaiming account rent, burning unwanted tokens, and claiming supported Pump.fun and PumpSwap cashback. It uses an English interface with locally bundled UI assets. Solfund adds no service fee; Solana network fees still apply.
+Solstake is a local Solana app for reclaiming account rent, burning unwanted tokens, and claiming supported Pump.fun and PumpSwap cashback. It uses an English interface with locally bundled UI assets. Solstake adds no service fee; Solana network fees still apply.
 
 This is a development project. Passing tests does not make it an audited or production-ready wallet application. See [verification and limits](docs/VERIFICATION.md).
 
@@ -50,13 +50,13 @@ node serve.mjs
 
 The default upstream is Solana's public mainnet RPC. Public RPC limits may prevent some account requests; a provider endpoint can be supplied through the environment. Keep RPC credentials on the server and out of browser files.
 
-`npm start` loads `.env` if present. Use `SOLFUND_RPC_URL` for the upstream endpoint and `SOLFUND_PORT` for the local port. The legacy `LEERGUT_RPC_URL` and `LEERGUT_PORT` names remain supported; the Solfund names take precedence. `node serve.mjs` uses exported environment variables directly. See [.env.example](.env.example) for example settings. See [AGENTS.md](AGENTS.md) for concise commands and [architecture](docs/ARCHITECTURE.md) for the request flow.
+`npm start` loads `.env` if present. Use `SOLSTAKE_RPC_URL` for the upstream endpoint and `SOLSTAKE_PORT` for the local port. Previous `SOLFUND_*` and legacy `LEERGUT_*` names remain supported, in that order; the Solstake names take precedence. `node serve.mjs` uses exported environment variables directly. See [.env.example](.env.example) for example settings. See [AGENTS.md](AGENTS.md) for concise commands and [architecture](docs/ARCHITECTURE.md) for the request flow.
 
 ## How it works
 
 1. Connect a wallet or choose **View an address**.
 2. Review the selected accounts and rewards. Empty accounts and supported Pump claims are selected initially; token balances require an explicit selection.
-3. Choose **Review selection**. Solfund simulates each batch and shows what would be burned, reclaimed, or skipped.
+3. Choose **Review selection**. Solstake simulates each batch and shows what would be burned, reclaimed, or skipped.
 4. Choose either claim option, then approve the intended actions in the wallet. The optional tip is included in the same claim transaction and is never added to the no-tip option. Burning is permanent. The app monitors submitted signatures and links to the explorer.
 
 The tip recipient is fixed in [`site/lib/tips.js`](site/lib/tips.js). Tips are rounded down to whole lamports per transaction. A failed transaction pays no tip, although Solana can still charge its network fee. Claims from the tip-receiving wallet do not send a self-tip. No tip preference is saved or applied automatically to later claims.
@@ -67,7 +67,7 @@ The **Account** button opens history recorded by this browser, separated by wall
 
 The local server forwards a restricted set of RPC requests to the configured Solana endpoint. The browser also requests USD prices from Jupiter, which receives the requested mint addresses and the browser's IP address. Prices are informational and may be unavailable or stale.
 
-Wallet private keys and recovery phrases are never requested by Solfund. The connected wallet signs transactions. A wallet's signing and sending capabilities affect which checks the app can perform; see [SECURITY.md](SECURITY.md). Browser history is not a complete financial ledger.
+Wallet private keys and recovery phrases are never requested by Solstake. The connected wallet signs transactions. A wallet's signing and sending capabilities affect which checks the app can perform; see [SECURITY.md](SECURITY.md). Browser history is not a complete financial ledger.
 
 ## Development
 

@@ -6,7 +6,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.jup.ag; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="color-scheme" content="light dark">
-  <title>Solfund – Burn tokens, reclaim SOL</title>
+  <title>Solstake – Burn tokens, reclaim SOL</title>
   <meta name="description" content="Burn unwanted Solana tokens and close their accounts. Reclaim the rent to your wallet with no service fee.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <!-- Reihenfolge: Puppertino, Icons, apple-ui-Schicht, eigene App-Bausteine -->
@@ -37,7 +37,7 @@
     <div class="app-topbar__inner">
       <div class="app-brand">
         <img class="app-brand__mark" src="icon.svg" alt="" width="34" height="34">
-        <span class="app-brand__name">Solfund</span>
+        <span class="app-brand__name">Solstake</span>
       </div>
       <div class="app-topbar__actions" role="group" aria-label="Quick actions">
         <button id="header-address" class="p-nav-bar__button" type="button" aria-label="View an address" title="View an address" aria-haspopup="dialog" aria-controls="address-sheet">
@@ -58,6 +58,23 @@
   </header>
 
   <main id="main" class="app-main"></main>
+
+  <footer class="app-footer" aria-label="Project links and design credit">
+    <div class="app-footer__inner">
+      <a class="app-footer__link app-footer__link--x" href="https://x.com/xyzstudiosde" target="_blank" rel="noopener noreferrer" aria-label="XYZ STUDIOS on X (@xyzstudiosde)">
+        <i class="ph-bold ph-x-logo" aria-hidden="true"></i>
+        <span class="app-footer__handle">@xyzstudiosde</span>
+      </a>
+      <div class="app-footer__credit">
+        <span class="app-footer__caption">Design by</span>
+        <img class="app-footer__logo" src="assets/xyz-studios.svg" alt="XYZ STUDIOS" width="152" height="20">
+      </div>
+      <a id="project-github" class="app-footer__link app-footer__link--github" href="https://github.com/xyzstudios-git/solstake" target="_blank" rel="noopener noreferrer" aria-label="Solstake repository on GitHub">
+        <i class="ph-fill ph-github-logo" aria-hidden="true"></i>
+        <span>Solstake</span>
+      </a>
+    </div>
+  </footer>
 
   <!-- Hauptaktion auf dem Handy unten; auf dem PC sitzt sie in der Auszahlungs-Karte -->
   <div id="action-bar" class="app-action-bar" hidden>

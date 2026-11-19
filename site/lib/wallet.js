@@ -50,7 +50,7 @@ export function watchWallets(win, onChange) {
     try {
       event.detail(api);
     } catch (error) {
-      console.error('Solfund: wallet registration failed', error);
+      console.error('Solstake: wallet registration failed', error);
     }
   };
   win.addEventListener('wallet-standard:register-wallet', onRegister);

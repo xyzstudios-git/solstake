@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Leergut lokal: liefert die Seite aus und reicht erlaubte Solana-Anfragen an den RPC weiter.
 // Der Proxy ist nötig, weil öffentliche RPCs Kontoabfragen aus dem Browser sperren, und er hält
-// einen eigenen RPC-Schlüssel (LEERGUT_RPC_URL) aus dem Browser heraus.
+// einen eigenen RPC-Schlüssel (SOLSTAKE_RPC_URL) aus dem Browser heraus.
 //
 //   node serve.mjs                         → http://127.0.0.1:8790
-//   LEERGUT_RPC_URL=https://… node serve.mjs   (z. B. Helius mit Schlüssel)
+//   SOLSTAKE_RPC_URL=https://… node serve.mjs   (z. B. Helius mit Schlüssel)
 //
 // Gedacht für den eigenen Rechner. Für öffentliches Hosting fehlen noch Ratenbegrenzung je Nutzer
 // und ein Host, der die Sicherheits-Header setzt (siehe README).
@@ -227,7 +227,7 @@ async function handleRpc(req, res, { upstreamUrl, fetchImpl, allowedOrigins, max
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (error) {
-    process.stderr.write(`Solfund: Solana RPC unavailable (${payload.method}): ${error.message}\n`);
+    process.stderr.write(`Solstake: Solana RPC unavailable (${payload.method}): ${error.message}\n`);
     sendRpcError(res, 502, 'Solana RPC unavailable', id);
     return;
   }
@@ -245,10 +245,10 @@ async function handleRpc(req, res, { upstreamUrl, fetchImpl, allowedOrigins, max
  * @returns {Promise<{ url: string, port: number, close: () => Promise<void> }>}
  */
 export async function startServer({
-  port = Number(process.env.SOLFUND_PORT ?? process.env.LEERGUT_PORT ?? 8790),
+  port = Number(process.env.SOLSTAKE_PORT ?? process.env.SOLFUND_PORT ?? process.env.LEERGUT_PORT ?? 8790),
   host = '127.0.0.1',
   root = SITE_DIR,
-  upstreamUrl = process.env.SOLFUND_RPC_URL ?? process.env.LEERGUT_RPC_URL ?? DEFAULT_UPSTREAM,
+  upstreamUrl = process.env.SOLSTAKE_RPC_URL ?? process.env.SOLFUND_RPC_URL ?? process.env.LEERGUT_RPC_URL ?? DEFAULT_UPSTREAM,
   fetchImpl = (...args) => globalThis.fetch(...args),
   maxResponseBytes = MAX_RESPONSE_BYTES,
   quiet = false,
@@ -276,7 +276,7 @@ export async function startServer({
       await serveStatic(req, res, rootDir);
     };
     handle().catch((error) => {
-      process.stderr.write(`Solfund: Request failed: ${error.stack ?? error}\n`);
+      process.stderr.write(`Solstake: Request failed: ${error.stack ?? error}\n`);
       if (!res.headersSent) sendText(res, 500, 'Server error');
       else res.end();
     });
@@ -291,7 +291,7 @@ export async function startServer({
   state.allowedOrigins = state.allowedHosts.map((h) => `http://${h}`);
   const url = `http://${host}:${actualPort}`;
   if (!quiet) {
-    process.stdout.write(`Solfund is running: ${url}\nSolana RPC: ${redact(upstream)}\nPress Ctrl+C to stop.\n`);
+    process.stdout.write(`Solstake is running: ${url}\nSolana RPC: ${redact(upstream)}\nPress Ctrl+C to stop.\n`);
   }
   return {
     url,
@@ -307,7 +307,7 @@ export async function startServer({
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   startServer().catch((error) => {
-    process.stderr.write(`Solfund could not start: ${error.message}\n`);
+    process.stderr.write(`Solstake could not start: ${error.message}\n`);
     process.exit(1);
   });
 }

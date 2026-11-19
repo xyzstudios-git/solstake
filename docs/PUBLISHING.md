@@ -1,29 +1,27 @@
-# Publishing the prepared repository
+# Repository and publication
 
-The source is prepared locally. No remote repository is created by these instructions and no deployment runs automatically.
+The project targets the private repository [xyzstudios-git/solstake](https://github.com/xyzstudios-git/solstake). The owner has authorized the private upload. Public visibility and deployment require separate, explicit approval.
 
-The owner has chosen a **private repository**. Public visibility or deployment requires a separate, explicit approval. Before the first push, verify the target GitHub account or organization. The proposed code license is MIT; review it before public publication. Third-party licenses and trademark rights remain separate.
+The proposed code license is MIT; the owner must choose the license before public publication. Third-party licenses and trademark rights remain separate.
 
-The prepared initial commit uses a neutral project identity, not a personal email address. Choose an appropriate public or GitHub noreply author identity before subsequent commits. Review [dependency status](DEPENDENCIES.md) as part of the publication decision.
+## Clone and verify
 
-From the repository directory:
-
-```sh
-npm ci
-npm run check
-npm test
-git status --short
-```
-
-The `.env` file, `node_modules`, local agent files, generated logs, and private Affinity sources must remain untracked. The original Affinity file is preserved separately from the GitHub source package because it contains workstation metadata.
-
-For a new private GitHub repository, after checking the authenticated account:
-
-```sh
+```bash
 gh auth status
-gh repo create solfund --private --source=. --remote=origin --push
+gh repo clone xyzstudios-git/solstake
+cd solstake
+./setup.sh
+npm start
 ```
 
-Use `--public` only when public publication and the license have been approved. Do not create a remote README or license through GitHub before pushing the complete local tree.
+The `.env` file, `node_modules`, local agent files, generated logs and private Affinity sources must remain untracked. The supplied source tree includes the implemented interface, editable SVG marks and the local vendor assets.
 
-After the push, check that both Node.js CI jobs pass. Configure repository security reporting and review permissions in GitHub. CI does not deploy a website. Public web hosting needs a separate deployment plan for the static files and the restricted `/rpc` proxy; GitHub Pages alone cannot run this server.
+## Push changes
+
+Check the authenticated account, target repository, private visibility and working-tree contents before pushing. Never push environment credentials or wallet secrets.
+
+After a push, check both Node.js CI jobs. A successful local test run does not prove that the GitHub runner succeeded. CI runs syntax and offline tests; it does not deploy a website or sign real-wallet transactions.
+
+## Public publication
+
+Public visibility requires a separate owner go and a confirmed code license. Public web hosting needs a reviewed HTTPS deployment for the static files and restricted `/rpc` proxy; GitHub Pages alone cannot run this server. Review the remaining limits in [VERIFICATION.md](VERIFICATION.md) and [SECURITY.md](../SECURITY.md).

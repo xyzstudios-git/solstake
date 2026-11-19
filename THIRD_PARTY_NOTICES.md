@@ -1,6 +1,6 @@
 # Third-party notices
 
-Solfund includes the following vendored browser assets. Their original license texts remain alongside the files.
+Solstake includes the following vendored browser assets. Their original license texts remain alongside the files.
 
 | Component | Location | License | Source |
 | --- | --- | --- | --- |
@@ -16,3 +16,5 @@ The application icon and editable SVG in `design/branding/` were supplied for th
 Development dependencies are installed from the exact versions and integrity hashes in `package-lock.json`. They are not shipped to the browser or needed by the production Node server. Their own licenses are included by their packages.
 
 Pump program identifiers, instruction discriminators, and protocol layouts are based on the official public interface documentation at <https://github.com/pump-fun/pump-public-docs>. See `tests/pump-rewards.test.mjs` for compatibility checks. No Sol Incinerator source code is bundled.
+
+The XYZ STUDIOS logo in `site/assets/xyz-studios.svg` and `design/branding/xyz-studios.svg` was supplied by the owner for the design credit. It retains the supplied artwork and embedded mask image; only the artboard bounds were fitted for display. It is not an Apple asset and is not covered by the project code license.

@@ -1,5 +1,5 @@
 /*
- * Solfund – eigene Schicht (app-…) über Puppertino 2.0 und apple-ui.css.
+ * Solstake – eigene Schicht (app-…) über Puppertino 2.0 und apple-ui.css.
  * Solana-Farben, Glas für Leisten und Dialoge, Layout vom Handy bis zum Ultrawide-Monitor.
  * Bedienelemente kommen aus Puppertino; hier stehen nur Tokens und eigene Inhaltsbausteine.
  */
@@ -33,6 +33,7 @@
 
   --app-max: 1180px;
   --app-topbar-h: 56px;
+  --app-footer-room: 96px;
   --app-radius: 28px;
   --app-action-room: calc(92px + env(safe-area-inset-bottom));
 }
@@ -71,6 +72,8 @@
 
 /* 2 · App-Hintergrund ---------------------------------------------------------- */
 body.app-body {
+  display: flex;
+  flex-direction: column;
   --p-list-touch-bg: var(--app-surface);
   --p-bottom-sheet-bg: var(--app-sheet-tint);
   min-height: 100dvh;
@@ -105,6 +108,8 @@ body.app-body::before {
 
 /* 3 · Kopfleiste --------------------------------------------------------------- */
 .app-topbar {
+  flex: none;
+  width: 100%;
   position: sticky;
   top: 0;
   z-index: 40;
@@ -225,6 +230,8 @@ body.app-body::before {
 
 /* 4 · Seite und Raster ---------------------------------------------------------------- */
 .app-main {
+  flex: 1 0 auto;
+  width: 100%;
   box-sizing: border-box;
   max-width: var(--app-max);
   margin-inline: auto;
@@ -232,7 +239,7 @@ body.app-body::before {
 }
 
 .app-main.app-has-action {
-  padding-bottom: calc(var(--app-action-room) + var(--ui-space-6));
+  padding-bottom: var(--ui-space-6);
 }
 
 .app-layout,
@@ -291,11 +298,91 @@ body.app-body::before {
   }
 }
 
+/* Project links and design credit */
+.app-footer {
+  box-sizing: border-box;
+  flex: none;
+  width: 100%;
+  max-width: var(--app-max);
+  margin: auto auto 0;
+  padding: var(--ui-space-2) max(var(--ui-margin), env(safe-area-inset-right)) max(var(--ui-space-6), env(safe-area-inset-bottom)) max(var(--ui-margin), env(safe-area-inset-left));
+  color: var(--p-text-secondary);
+}
+
+.app-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: clamp(8px, 3vw, 24px);
+  max-width: 720px;
+  margin-inline: auto;
+  padding-top: var(--ui-space-4);
+  border-top: 1px solid var(--app-edge);
+}
+
+.app-footer__link {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--ui-space-2);
+  min-width: 44px;
+  min-height: 44px;
+  padding-inline: var(--ui-space-2);
+  border-radius: 999px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.18s, background-color 0.18s;
+}
+
+.app-footer__link i { flex: none; font-size: 20px; }
+.app-footer__link--github { justify-self: end; }
+.app-footer__link[href]:hover,
+.app-footer__link[href]:active { background: var(--app-fill); color: var(--p-text-primary); }
+.app-footer__link:focus-visible { outline: 2px solid var(--p-color-current); outline-offset: 2px; }
+
+.app-footer__credit {
+  display: grid;
+  justify-items: center;
+  gap: var(--ui-space-2);
+}
+
+.app-footer__caption { font-size: 11px; line-height: 1; }
+.app-footer__logo {
+  display: block;
+  width: clamp(120px, 40vw, 152px);
+  max-width: 100%;
+  height: auto;
+  filter: brightness(0);
+  opacity: 0.78;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-footer__logo { filter: none; opacity: 0.88; }
+}
+
+@media (max-width: 599px) {
+  .app-footer__inner { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .app-footer__credit { min-width: 0; }
+  .app-footer__handle { display: none; }
+  .app-footer__link { gap: 6px; padding-inline: 4px; font-size: 12px; }
+  .app-footer__link i { font-size: 18px; }
+}
+
+@media (max-width: 1099px) {
+  .app-main.app-has-action + .app-footer {
+    padding-bottom: calc(var(--app-action-room) + var(--ui-space-6));
+  }
+}
+
 /* 5 · Start -------------------------------------------------------------------- */
 .app-start {
   display: grid;
   place-items: center;
-  min-height: calc(100dvh - var(--app-topbar-h) - var(--ui-space-2) - 2 * var(--ui-space-12));
+  min-height: calc(100dvh - var(--app-topbar-h) - var(--ui-space-2) - 2 * var(--ui-space-12) - var(--app-footer-room));
 }
 
 .app-hero {
@@ -1075,7 +1162,8 @@ body.app-body .p-modal-background::before {
   .app-enter,
   .app-disclosure > summary i,
   .p-bottom-sheet,
-  .p-button.app-cta {
+  .p-button.app-cta,
+  .app-footer__link {
     animation: none;
     transition: none;
   }

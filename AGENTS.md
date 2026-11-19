@@ -1,4 +1,4 @@
-# Solfund
+# Solstake
 
 **Version:** 0.1.0 | **Local port:** 8790 | **Stack:** HTML/CSS, JavaScript ES modules, Node.js HTTP server
 
@@ -59,16 +59,16 @@ The browser reads chain data through `/rpc`; only `serve.mjs` receives the confi
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `SOLFUND_PORT` | Local loopback HTTP port | `8790` |
-| `SOLFUND_RPC_URL` | Server-side Solana RPC endpoint | Public mainnet RPC |
-| `LEERGUT_PORT`, `LEERGUT_RPC_URL` | Backward-compatible aliases | Used if corresponding Solfund variable is absent |
+| `SOLSTAKE_PORT` | Local loopback HTTP port | `8790` |
+| `SOLSTAKE_RPC_URL` | Server-side Solana RPC endpoint | Public mainnet RPC |
+| `SOLFUND_PORT`, `SOLFUND_RPC_URL`, `LEERGUT_PORT`, `LEERGUT_RPC_URL` | Backward-compatible aliases | Used if corresponding Solstake variable is absent; Solfund aliases take precedence over Leergut |
 
 Never put endpoint credentials in browser source or print their values.
 
 ## Working rules
 
 - Read the existing code and focused tests before editing. Preserve other contributors' changes.
-- Keep UI labels, accessible names, numbers, and dates in English; preserve the system font and Solfund branding.
+- Keep UI labels, accessible names, numbers, and dates in English; preserve the system font and Solstake branding.
 - Treat token names, errors, and chain data as untrusted text. Do not use HTML interpolation.
 - Preserve exact token amounts and validate safe lamport arithmetic.
 - Do not change recipients, fees, account authorities, program IDs, allowlists, or signing checks as incidental cleanup.
@@ -83,4 +83,4 @@ Never put endpoint credentials in browser source or print their values.
 
 See `CONTRIBUTING.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`, and `docs/VERIFICATION.md`.
 
-The GitHub connection is deferred until the owner has their phone. When the owner asks what to do next, remind them about that connection and the private upload. Public visibility still requires a separate explicit go.
+The GitHub target is `xyzstudios-git/solstake`. The owner has authorized a private upload. Public visibility and deployment still require a separate explicit go.

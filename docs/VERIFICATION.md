@@ -6,7 +6,7 @@ This document distinguishes local automated checks, observed browser behavior, a
 
 As of 19 November 2026, the working project passed **131 Node tests on macOS** after the English interface and circular Account control changes. That result applies to the tested working state. A newly generated CI workflow is not considered verified until its own run succeeds.
 
-The repository preparation then passed the complete `./setup.sh` flow in a separate fresh installation: syntax checks for 43 JavaScript modules and **136 tests** on macOS with Node.js 26. Four added tests cover configuration precedence, legacy environment variables, native `.env` loading, and explicit arguments for the simulation tool. A further test checks the updated development SDK transport. The README screenshot was captured from this prepared Solfund source without a connected wallet. See [dependency status](DEPENDENCIES.md) for the remaining development-only advisory.
+The repository preparation then passed the complete `./setup.sh` flow in a separate fresh installation: syntax checks for 43 JavaScript modules and **136 tests** on macOS with Node.js 26. Four added tests cover configuration precedence, legacy environment variables, native `.env` loading, and explicit arguments for the simulation tool. A further test checks the updated development SDK transport. The earlier layout screenshot was captured from the prepared Solfund source before the rename to Solstake, without a connected wallet. See [dependency status](DEPENDENCIES.md) for the remaining development-only advisory.
 
 The minimal development-dependency update then passed **136 tests**, including a new SDK transport compatibility test. The app's browser code is byte-identical across that dependency update. The audit result and remaining development-only findings are described in [DEPENDENCIES.md](DEPENDENCIES.md).
 
@@ -54,3 +54,9 @@ Coverage must be generated from the current checkout. Historical coverage percen
 - Complete production privacy, rate-limit, abuse-handling, monitoring, and incident-response behavior.
 
 A future release should record its exact commit, runtime/platform, test output, browser checks, and deployment-specific validation. Keep real-wallet approvals with the wallet owner.
+
+## Solstake name and design-credit footer
+
+On 19 November 2026, the Solstake rename and compact footer extension passed syntax checks for **45 JavaScript modules** and **152 offline tests** on macOS. The additional configuration test verifies `SOLSTAKE_*` precedence while retaining `SOLFUND_*` and `LEERGUT_*` aliases. The supplied XYZ STUDIOS logo retains its artwork and embedded mask image; only the SVG artboard bounds were fitted. The source and runtime copies match.
+
+Code review found no actionable issues. Browser control was unavailable in this chat, so responsive appearance, footer interactions and light/dark layout have not been visually verified in a live browser for this change. Prior browser observations above do not constitute visual approval of the new footer. GitHub CI results must be checked separately after pushing.

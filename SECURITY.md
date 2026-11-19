@@ -1,6 +1,6 @@
 # Security policy
 
-Solfund builds transactions that may permanently burn tokens or close accounts. The current development version is not independently audited. Automated tests, simulations, and code review reduce particular risks but do not prove that every wallet, account type, or deployment is safe.
+Solstake builds transactions that may permanently burn tokens or close accounts. The current development version is not independently audited. Automated tests, simulations, and code review reduce particular risks but do not prove that every wallet, account type, or deployment is safe.
 
 ## Reporting a vulnerability
 

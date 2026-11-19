@@ -15,7 +15,7 @@ import { isAddress } from '../site/lib/base58.js';
 
 const owner = process.argv[2];
 const feePayer = process.argv[3];
-const RPC_URL = process.env.SOLFUND_RPC_URL ?? process.env.LEERGUT_RPC_URL ?? 'https://api.mainnet-beta.solana.com';
+const RPC_URL = process.env.SOLSTAKE_RPC_URL ?? process.env.SOLFUND_RPC_URL ?? process.env.LEERGUT_RPC_URL ?? 'https://api.mainnet-beta.solana.com';
 const PLACEHOLDER = '11111111111111111111111111111111';
 
 if (!isAddress(owner) || !isAddress(feePayer)) {

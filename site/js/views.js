@@ -85,7 +85,7 @@ export function renderStart({ onConnect, onWatch }) {
       { class: 'app-hero app-material', 'aria-labelledby': 'start-title' },
       h('img', { class: 'app-hero__mark', src: 'icon.svg', alt: '', width: 104, height: 104 }),
       h('h1', { class: 'app-hero__title', id: 'start-title' }, 'Get your ', h('span', { class: 'app-gradient-text', text: 'SOL' }), ' back'),
-      h('div', { class: 'app-hero__text', text: 'Close empty accounts, burn unwanted tokens, and recover the rent — usually 0.002 SOL per account. Optional tips support Solfund.' }),
+      h('div', { class: 'app-hero__text', text: 'Close empty accounts, burn unwanted tokens, and recover the rent — usually 0.002 SOL per account. Optional tips support Solstake.' }),
       h('button', { class: 'p-button p-button-touch-large p-button-primary app-cta app-wide', type: 'button', on: { click: onConnect } }, 'Connect wallet'),
       h('button', { class: 'p-button p-button-touch-small p-button-borderless', type: 'button', on: { click: onWatch } }, 'View an address'),
       h('ul', { class: 'app-facts', 'aria-label': 'Safety' }, fact('lock-key', 'Your keys stay in your wallet'), fact('flask', 'Simulated before sending'), fact('hand-coins', 'Tipping is optional')),
@@ -418,7 +418,7 @@ export function renderAccountSheet({ state, onRefresh, onSwitch, onDisconnect })
         h('li', { class: 'p-list-row' }, h('button', { class: 'app-row-button app-destructive', type: 'button', on: { click: onDisconnect } }, icon('sign-out'), label(state.readOnly ? 'Stop viewing' : 'Disconnect wallet'))),
       ]),
     ),
-    state.readOnly ? null : h('div', { class: 'app-note', text: 'Multiple accounts in Phantom? Switch accounts in Phantom and Solfund will update automatically.' }),
+    state.readOnly ? null : h('div', { class: 'app-note', text: 'Multiple accounts in Phantom? Switch accounts in Phantom and Solstake will update automatically.' }),
   ];
 }
 
@@ -457,7 +457,7 @@ export function renderFlowReady({ plan, tipPlan = null, tipError = null, state, 
         row({ title: 'Network fee', subtitle: 'estimated · without tip', trailing: detail(amount(plan.networkFeeLamports, { sign: '−' })) }),
       ]),
       h('div', { class: 'app-tip-info' },
-        h('div', { class: 'app-tip-info__title' }, icon('heart'), h('span', { text: 'Support Solfund with an optional tip' })),
+        h('div', { class: 'app-tip-info__title' }, icon('heart'), h('span', { text: 'Support Solstake with an optional tip' })),
         h('div', { class: 'app-note', text: 'A 20% tip is calculated on the quoted SOL claim before network fees. Both options below show your estimated net amount.' }),
         tipPlan ? h('div', { class: 'app-tip-info__amount' }, h('span', { text: 'Optional tip' }), amount(tipPlan.tipLamports)) : null,
         h('a', { class: 'app-tip-recipient', href: `https://solscan.io/account/${TIP_RECIPIENT}`, target: '_blank', rel: 'noopener noreferrer', 'aria-label': `Tip recipient ${TIP_RECIPIENT}` },

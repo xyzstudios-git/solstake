@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="logo-title">
-  <title id="logo-title">Solfund logo</title>
+  <title id="logo-title">Solstake logo</title>
   <defs>
     <linearGradient id="solana-gradient" x1="0" y1="256" x2="256" y2="0" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#9945FF"/>

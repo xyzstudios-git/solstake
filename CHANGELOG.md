@@ -6,6 +6,8 @@ Changes are recorded by release. Unreleased work is not a published or productio
 
 ### Added
 
+- Compact X, XYZ STUDIOS design credit and direct repository footer.
+
 - Optional 20% tipping in the claim review, with a prominent tipped option and an equally direct no-tip option.
 - Both plans are simulated before approval; tips execute atomically with claims and are never added after an opt-out.
 - History separates verified tips, network fees, gross recovery and net received amounts.
@@ -19,7 +21,7 @@ Changes are recorded by release. Unreleased work is not a published or productio
 
 ### Changed
 
-- Renamed the product to Solfund.
+- Renamed the product to Solstake; previous server environment names remain compatible.
 - Converted the interface, accessibility labels, errors, and numeric/date formatting to English.
 - Made the Account control a circular icon button.
 - Improved narrow layouts, dialog scrolling, scan failures, search selection notices, wallet-change handling, and keyboard focus.

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Lokale Test-Chain für Oberflächentests: LiteSVM mit den echten Token-Programmen hinter einer
-// JSON-RPC-Schnittstelle, dazu Solfund selbst, das darauf zeigt. Kein echtes Geld, kein Mainnet.
+// JSON-RPC-Schnittstelle, dazu Solstake selbst, das darauf zeigt. Kein echtes Geld, kein Mainnet.
 //
-//   node tools/demo-chain.mjs          → Test-Chain auf 127.0.0.1:8899, Solfund auf http://127.0.0.1:8791
+//   node tools/demo-chain.mjs          → Test-Chain auf 127.0.0.1:8899, Solstake auf http://127.0.0.1:8791
 //
 // Signaturen prüft die Test-Chain nicht (sigverify aus); so kann eine eingeschleuste Test-Wallet
 // im Browser „unterschreiben“. Echte Signaturen prüfen die LiteSVM-Tests in tests/.
@@ -180,4 +180,4 @@ const chain = http.createServer((req, res) => {
 });
 await new Promise((resolve) => chain.listen(CHAIN_PORT, '127.0.0.1', resolve));
 const app = await startServer({ port: APP_PORT, upstreamUrl: `http://127.0.0.1:${CHAIN_PORT}`, quiet: true });
-process.stdout.write(`Test chain: http://127.0.0.1:${CHAIN_PORT}\nSolfund on the test chain: ${app.url}\nTest wallet: ${owner.publicKey.toBase58()}\n`);
+process.stdout.write(`Test chain: http://127.0.0.1:${CHAIN_PORT}\nSolstake on the test chain: ${app.url}\nTest wallet: ${owner.publicKey.toBase58()}\n`);

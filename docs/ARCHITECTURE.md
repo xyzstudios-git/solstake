@@ -2,7 +2,7 @@
 
 ## Runtime and requests
 
-Solfund has two runtime parts: static browser ES modules under `site/` and the Node.js HTTP server in `serve.mjs`. There is no bundler, database, application package dependency, or build output to generate. Test and demo tooling uses development dependencies from the lockfile.
+Solstake has two runtime parts: static browser ES modules under `site/` and the Node.js HTTP server in `serve.mjs`. There is no bundler, database, application package dependency, or build output to generate. Test and demo tooling uses development dependencies from the lockfile.
 
 ```text
 Browser UI ── same-origin /rpc ── local Node server ── configured Solana RPC

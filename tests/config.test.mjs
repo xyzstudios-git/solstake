@@ -7,7 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { startServer } from '../serve.mjs';
 
-const names = ['SOLFUND_PORT', 'SOLFUND_RPC_URL', 'LEERGUT_PORT', 'LEERGUT_RPC_URL'];
+const names = ['SOLSTAKE_PORT', 'SOLSTAKE_RPC_URL', 'SOLFUND_PORT', 'SOLFUND_RPC_URL', 'LEERGUT_PORT', 'LEERGUT_RPC_URL'];
 function environment(t, values) {
   const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
   for (const name of names) {
@@ -38,7 +38,14 @@ async function configuredServer(t) {
   return { app, requests };
 }
 
-test('Solfund server variables take precedence over legacy configuration', async (t) => {
+test('Solstake variables take precedence over both previous configuration names', async (t) => {
+  environment(t, { SOLSTAKE_PORT: '0', SOLFUND_PORT: 'previous-invalid-port', LEERGUT_PORT: 'legacy-invalid-port', SOLSTAKE_RPC_URL: 'https://current.example.test/rpc', SOLFUND_RPC_URL: 'https://previous.example.test/rpc', LEERGUT_RPC_URL: 'https://legacy.example.test/rpc' });
+  const { app, requests } = await configuredServer(t);
+  assert.equal(requests[0], 'https://current.example.test/rpc');
+  assert.ok(Number.isInteger(app.port) && app.port > 0);
+});
+
+test('previous Solfund server variables take precedence over Leergut configuration', async (t) => {
   environment(t, { SOLFUND_PORT: '0', LEERGUT_PORT: 'legacy-invalid-port', SOLFUND_RPC_URL: 'https://primary.example.test/rpc', LEERGUT_RPC_URL: 'https://legacy.example.test/rpc' });
   const { app, requests } = await configuredServer(t);
   assert.equal(requests[0], 'https://primary.example.test/rpc');
@@ -51,11 +58,11 @@ test('legacy server variables continue to work', async (t) => {
   assert.equal(requests[0], 'https://legacy.example.test/rpc');
 });
 
-test('the start command loads an optional environment file and serves Solfund', async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), 'solfund-env-test-'));
+test('the start command loads an optional environment file and serves Solstake', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'solstake-env-test-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const envFile = join(directory, '.env');
-  await writeFile(envFile, 'SOLFUND_PORT=0\nSOLFUND_RPC_URL=https://rpc.example.test/\n');
+  await writeFile(envFile, 'SOLSTAKE_PORT=0\nSOLSTAKE_RPC_URL=https://rpc.example.test/\n');
   const env = { ...process.env };
   for (const name of names) delete env[name];
   const child = spawn(process.execPath, [`--env-file-if-exists=${envFile}`, fileURLToPath(new URL('../serve.mjs', import.meta.url))], { env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -73,7 +80,7 @@ test('the start command loads an optional environment file and serves Solfund', 
   });
   const html = await (await fetch(url)).text();
   assert.match(html, /<html lang="en">/);
-  assert.match(html, /<title>Solfund/);
+  assert.match(html, /<title>Solstake/);
 });
 
 test('mainnet simulation requires explicit public addresses before any RPC call', () => {
