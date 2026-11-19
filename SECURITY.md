@@ -10,7 +10,7 @@ Include the affected commit, a minimal reproduction using test accounts, the exp
 
 ## Current boundaries
 
-- The application does not request private keys or recovery phrases. Signing is delegated to a compatible Wallet Standard wallet.
+- The application does not request private keys or recovery phrases. Signing is delegated to a compatible Wallet Standard wallet. Signing methods must be authorized by the selected account, and every request resolves the current authorized account for the reviewed address. Missing/revoked permissions stop the request; an empty connect result does not reuse previous accounts. Reconnection requires an explicit user action and clears the old plan. An authorization error never automatically retries signing or switches to another submission method.
 - For wallets that return signed transactions, `site/lib/verify.js` compares the returned message with the prepared plan before the app sends it. Only specifically handled compute-budget changes and Lighthouse checks are permitted. Wallets exposing only sign-and-send perform sending themselves; that path does not provide the same app-side pre-send inspection.
 - The account classifier excludes unsupported or protected cases. This is a defined set of rules, not a guarantee that every valuable or unusual asset is recognized.
 - Pump integration uses fixed program IDs and a pinned layout reference. Pending incentives, token rewards, or unknown account fields prevent closing the accumulator. On-chain program changes can require updates.

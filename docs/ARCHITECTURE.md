@@ -21,7 +21,7 @@ The `/rpc` proxy permits specific methods with parameter checks: token-account a
 
 `site/js/main.js` owns the current wallet, owner address, scan phase, accounts, selection, prices, prepared plan, running state, and account-history view. `views.js` and `account-view.js` construct DOM through `dom.js`; chain text is inserted as text rather than HTML.
 
-An owner change invalidates the previous plan and clears account data. Wallet changes received during a running claim are deferred so the captured transaction owner and recorded history remain consistent. Scan failures keep retry controls available and do not produce a clean-success state.
+An owner change invalidates the previous plan and clears account data. Same-address account refreshes update the signer; signing-mode changes invalidate the review. Each signing request checks the current account list and account-level permissions. Authorization failures offer explicit reconnection followed by a new review, with no automatic transaction retry. Wallet changes received during a running claim are deferred so the captured transaction owner and recorded history remain consistent. Scan failures keep retry controls available and do not produce a clean-success state.
 
 ## Scan and classify
 

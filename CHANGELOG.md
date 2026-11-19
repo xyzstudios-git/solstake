@@ -4,6 +4,11 @@ Changes are recorded by release. Unreleased work is not a published or productio
 
 ## [Unreleased]
 
+### Fixed
+
+- Respect account-level wallet signing permissions and refresh same-address account authorizations.
+- Stop revoked accounts before wallet requests and provide explicit reconnect/review recovery for authorization errors.
+
 ### Added
 
 - Compact X, XYZ STUDIOS design credit and direct repository footer.
