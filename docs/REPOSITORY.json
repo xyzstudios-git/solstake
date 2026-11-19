@@ -1,0 +1,17 @@
+{
+  "name": "solfund",
+  "description": "Reclaim Solana account rent and supported Pump rewards with wallet-verified transactions.",
+  "default_branch": "main",
+  "suggested_topics": [
+    "solana",
+    "pump-fun",
+    "token-2022",
+    "wallet-standard",
+    "javascript",
+    "rent-reclaim"
+  ],
+  "visibility": "private; public visibility requires explicit owner approval",
+  "license": "MIT proposal pending owner approval",
+  "deployment": "not configured; CI tests only",
+  "publication": "public visibility and deployment require explicit owner approval"
+}

@@ -1,0 +1,388 @@
+/*
+ * apple-ui.css – eigene Schicht über Puppertino 2.0 (iOS 27 / macOS 27).
+ *
+ * Immer NACH dem Puppertino-Stylesheet laden:
+ *   <link rel="stylesheet" href="vendor/puppertino/css/puppertino-mobile.min.css">
+ *   <link rel="stylesheet" href="apple-ui.css">
+ *
+ * Inhalt: 1 Marke · 2 Raster und Maße · 3 App-Rahmen · 4 Scroll-Edge · 5 Geräterahmen für Mockups
+ * Eigene Klassen beginnen mit ui-, Puppertino-Klassen mit p-.
+ */
+
+/* 1 · Marke ----------------------------------------------------------------
+ * Standard ist Apples Blau. Für eine eigene Marke nur diese zwei Werte ändern.
+ * Puppertino färbt Buttons, Segmente, Checkboxen und Slider über
+ * --p-color-current; iOS-Switches bleiben wie bei Apple grün.
+ */
+:root {
+  --ui-accent: #0088ff;      /* hell (systemBlue iOS/macOS 27) */
+  --ui-accent-dark: #0091ff; /* dunkel */
+}
+
+body,
+.p-light-mode,
+[data-p-theme="lightmode"] {
+  --p-color-current: var(--ui-accent);
+  --p-control-accent: var(--ui-accent);
+}
+
+body.p-dark-mode,
+.p-dark-mode,
+[data-p-theme="darkmode"] {
+  --p-color-current: var(--ui-accent-dark);
+  --p-control-accent: var(--ui-accent-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  body.p-auto-dark-mode {
+    --p-color-current: var(--ui-accent-dark);
+    --p-control-accent: var(--ui-accent-dark);
+  }
+}
+
+/* 2 · Raster und Maße ------------------------------------------------------
+ * 4-px-Raster wie in Apples Layouts. Ränder: 16 px auf dem iPhone,
+ * 20 px ab 768 px (iPad, Mac).
+ */
+:root {
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-12: 48px;
+
+  --ui-margin: 16px;
+  --ui-target: 44px;        /* kleinste Trefferfläche iOS */
+  --ui-radius-control: 22px; /* 44-px-Kapsel */
+  --ui-radius-card: 24px;   /* gruppierte Listen, Karten */
+  --ui-radius-panel: 32px;  /* Sheets, Popover, Dialoge */
+  --ui-tab-bar-room: 104px; /* Platz unter dem Inhalt für die schwebende TabBar */
+  --ui-readable: 672px;     /* lesbare Textbreite */
+}
+
+@media (min-width: 768px) {
+  :root {
+    --ui-margin: 20px;
+  }
+}
+
+/* 3 · App-Rahmen ----------------------------------------------------------- */
+
+/* hidden muss immer gewinnen, auch gegen ui-stack, ui-row und Puppertino-Layouts
+   (sonst bleiben ausgeblendete Bereiche sichtbar; im Uhr-/Timer-Test gefunden) */
+[hidden] {
+  display: none !important;
+}
+
+.ui-app {
+  min-height: 100dvh;
+  background: var(--p-bg-primary);
+}
+
+/* Einstellungen, Formulare, gruppierte Listen: grauer Grund, Karten darauf */
+.ui-grouped {
+  background: var(--p-bg-grouped-primary);
+}
+
+/* Inhalt mit Seitenrand und Safe Areas */
+.ui-content {
+  padding-inline: max(var(--ui-margin), env(safe-area-inset-left)) max(var(--ui-margin), env(safe-area-inset-right));
+}
+
+/* Platz lassen, damit die schwebende TabBar nichts verdeckt */
+.ui-has-tab-bar {
+  padding-bottom: calc(var(--ui-tab-bar-room) + env(safe-area-inset-bottom));
+}
+
+.ui-stack {
+  display: grid;
+  gap: var(--ui-space-3);
+}
+
+.ui-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.ui-readable {
+  max-width: var(--ui-readable);
+}
+
+/* Gruppierte Liste (.p-list-inset) mit Seitenrand: Puppertino setzt keinen eigenen */
+.ui-inset {
+  margin-inline: var(--ui-margin);
+}
+
+/* Volle Breite für Elemente mit fester Breite, z. B. .p-bar-search im Inhalt (sonst 180 px) */
+.ui-fill {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Abschnittsüberschrift über einer gruppierten Liste (iOS 27: groß und fett),
+   bündig mit dem Text in den Zeilen (Seitenrand + 16 px Zeileneinzug) */
+.ui-section-title {
+  margin: var(--ui-space-6) 0 var(--ui-space-2);
+  padding-inline: calc(var(--ui-margin) + var(--ui-space-4));
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 25px;
+  letter-spacing: -0.023em;
+  color: var(--p-text-primary);
+}
+
+/* 4 · Scroll-Edge ---------------------------------------------------------
+ * Apple trennt schwebende Leisten vom Inhalt nicht mit einer Fläche, sondern mit
+ * einem weichen Verlauf, der den Inhalt darunter leicht weichzeichnet.
+ * Auf eine mitlaufende Kopfleiste setzen: <header class="p-nav-bar ui-scroll-edge">
+ */
+:root {
+  --ui-edge-tint: rgb(255 255 255 / 0.72);
+}
+
+.p-dark-mode,
+[data-p-theme="darkmode"] {
+  --ui-edge-tint: rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  .p-auto-dark-mode {
+    --ui-edge-tint: rgb(0 0 0 / 0.6);
+  }
+}
+
+/* Höhe der Statusleiste: echtes Gerät per env(), im Mockup 54 px (siehe 5) */
+:root {
+  --ui-safe-top: env(safe-area-inset-top, 0px);
+}
+
+.ui-scroll-edge {
+  position: sticky;
+  top: var(--ui-safe-top);
+  z-index: 20;
+  isolation: isolate;
+}
+
+/* Verlauf reicht bis unter die Statusleiste */
+.ui-scroll-edge::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--ui-safe-top)) 0 -20px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--ui-edge-tint), transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .ui-scroll-edge::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--p-bg-primary);
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* 5 · Geräterahmen für Mockups ---------------------------------------------
+ * Ab 600 px Breite steht die App in einem Telefon (393 × 852, iPhone-Größe),
+ * darunter füllt sie den Bildschirm wie eine echte App.
+ *   <body class="p-type p-auto-dark-mode ui-stage">
+ *     <div class="ui-device"><div class="ui-device__screen ui-grouped">…</div></div>
+ *   </body>
+ * Der Bildschirm ist der Bezugsrahmen für fixierte Leisten (.p-tab-bar-fixed)
+ * und Dialoge, sie bleiben also im Telefon.
+ */
+.ui-stage {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+@media (min-width: 600px) {
+  .ui-stage {
+    display: grid;
+    place-items: center;
+    padding: var(--ui-space-8);
+    background:
+      radial-gradient(1200px 600px at 20% 0%, rgb(0 136 255 / 0.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, rgb(203 48 224 / 0.08), transparent 60%),
+      var(--p-bg-secondary);
+  }
+
+  .ui-device {
+    --ui-device-w: 393px;
+    --ui-device-h: 852px;
+    position: relative;
+    padding: 12px;
+    border-radius: 64px;
+    background: #0b0b0c;
+    box-shadow:
+      0 0 0 1px #3a3a3c,
+      inset 0 0 0 2px #1c1c1e,
+      0 40px 80px rgb(0 0 0 / 0.28);
+  }
+
+  .ui-device::before {
+    /* Kamera-Insel */
+    content: "";
+    position: absolute;
+    top: 23px;
+    left: 50%;
+    z-index: 100;
+    width: 124px;
+    height: 36px;
+    border-radius: 18px;
+    background: #000;
+    transform: translateX(-50%);
+  }
+
+  .ui-device::after {
+    /* Uhrzeit der Statusleiste */
+    content: "9:41";
+    position: absolute;
+    top: 33px;
+    left: 64px;
+    z-index: 100;
+    font: 600 17px/22px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    letter-spacing: -0.026em;
+    color: var(--p-text-primary);
+  }
+
+  .ui-device__screen {
+    --ui-safe-top: 54px;
+    position: relative;
+    width: var(--ui-device-w);
+    height: var(--ui-device-h);
+    overflow: auto;
+    border-radius: 52px;
+    transform: translateZ(0);
+    scrollbar-width: none;
+  }
+
+  .ui-device__screen::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Sheets rechnen mit vw/vh des Browserfensters; im Telefon auf dessen Bildschirm beziehen.
+     !important nur bei der Höhe: sheets.js setzt beim Ziehen Höhen in vh als Inline-Stil. */
+  .ui-device__screen .p-bottom-sheet {
+    --p-bottom-sheet-width: 100%;
+    --p-bottom-sheet-height: 50%;
+    max-height: calc(100% - 24px) !important;
+  }
+
+  .ui-device__screen .p-bottom-sheet-large {
+    --p-bottom-sheet-height: 92%;
+  }
+
+  .ui-device__screen .p-bottom-sheet-full {
+    --p-bottom-sheet-height: calc(100% - 24px);
+  }
+}
+
+@media (max-width: 599px) {
+  .ui-device__screen {
+    min-height: 100dvh;
+  }
+}
+
+/* Erster Block im Bildschirm beginnt unter der Statusleiste */
+.ui-device__screen > :first-child {
+  padding-top: var(--ui-safe-top);
+}
+
+/* 6 · Korrekturen ----------------------------------------------------------
+ * .p-type am <body> setzt alle h1–h3 auf die Titelgrößen und überstimmt damit
+ * die Titel in Komponenten. Hier bekommen sie ihre iOS-Maße zurück.
+ */
+.p-type .p-bottom-sheet__title,
+.p-type .p-alert__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 590;
+  line-height: 22px;
+  letter-spacing: -0.026em;
+}
+
+/* Geschlossene Dialoge aus der Tab-Reihenfolge nehmen. Puppertino blendet sie nur über
+ * opacity aus, ihre Buttons blieben per Tastatur erreichbar (axe: aria-hidden-focus,
+ * im Uhr-/Timer-Test gefunden). visibility wechselt erst nach dem Ausblenden (Sheet 0,4 s),
+ * die Animationen von Puppertino bleiben unberührt.
+ */
+.p-modal[aria-hidden="true"] > * {
+  visibility: hidden;
+  transition: visibility 0s linear 0.4s;
+}
+
+/* 7 · Ergänzungen ----------------------------------------------------------
+ * Erledigt-Kreis wie in iOS „Erinnerungen“ (Puppertinos .p-checkbox ist die
+ * eckige Mac-Form). In einer Listenzeile vor .p-list-label setzen.
+ *   <input class="ui-check" type="checkbox" aria-label="Erledigt: Einkaufen">
+ */
+.ui-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border: 1.5px solid var(--p-text-tertiary);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.ui-check:checked {
+  border-color: var(--p-color-current);
+  background: var(--p-color-current);
+}
+
+.ui-check:checked::after {
+  content: "";
+  width: 10px;
+  height: 5px;
+  border: 2px solid #fff;
+  border-top: 0;
+  border-right: 0;
+  transform: translateY(-1px) rotate(-45deg);
+}
+
+.ui-check:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--p-color-current) 50%, transparent);
+  outline-offset: 2px;
+}
+
+/* Farbiges Quadrat mit weißem Icon, wie in den iOS-Einstellungen
+ *   <span class="p-list-icon ui-glyph" style="--ui-glyph: var(--p-sys-orange)"><i class="ph-fill ph-airplane"></i></span>
+ */
+.ui-glyph {
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--ui-glyph, var(--p-sys-gray));
+  color: #fff;
+  font-size: 18px;
+}
+
+/* Erledigte Zeilen treten zurück, wie bei Apple: grau statt durchgestrichen */
+.ui-check:checked ~ .p-list-label .p-list-title {
+  color: var(--p-text-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-check {
+    transition: none;
+  }
+}

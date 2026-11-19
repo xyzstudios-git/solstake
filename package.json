@@ -1,0 +1,33 @@
+{
+  "name": "solfund",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reclaim Solana account rent and supported Pump rewards with wallet-verified transactions.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env serve.mjs",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=site/lib/**",
+    "check": "node tools/check-syntax.mjs",
+    "demo": "node tools/demo-chain.mjs",
+    "simulate:mainnet": "node --env-file-if-exists=.env tools/mainnet-sim-check.mjs"
+  },
+  "devDependencies": {
+    "@solana/spl-token": "0.4.15",
+    "@solana/web3.js": "1.98.4",
+    "litesvm": "0.3.3"
+  },
+  "keywords": [
+    "solana",
+    "wallet",
+    "rent-reclaim",
+    "pumpfun",
+    "solfund"
+  ],
+  "overrides": {
+    "jayson": "5.0.0"
+  }
+}

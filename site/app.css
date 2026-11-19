@@ -1,0 +1,981 @@
+/*
+ * Solfund – eigene Schicht (app-…) über Puppertino 2.0 und apple-ui.css.
+ * Solana-Farben, Glas für Leisten und Dialoge, Layout vom Handy bis zum Ultrawide-Monitor.
+ * Bedienelemente kommen aus Puppertino; hier stehen nur Tokens und eigene Inhaltsbausteine.
+ */
+
+/* 1 · Farben ----------------------------------------------------------------- */
+:root {
+  --sol-purple: #9945ff;
+  --sol-indigo: #8752f3;
+  --sol-teal: #3fbac8;
+  --sol-green: #19fb9b;
+  --sol-gradient: linear-gradient(110deg, var(--sol-purple) 0%, var(--sol-indigo) 29%, var(--sol-teal) 67%, var(--sol-green) 100%);
+  --app-cta-gradient: linear-gradient(110deg, #702ce0 0%, #5242be 48%, #146d79 100%);
+  --ui-accent: #9945ff;
+  --ui-accent-dark: #a768ff;
+
+  --app-bg: #f5f5f8;
+  --app-surface: rgb(255 255 255 / 0.86);
+  --app-glass-tint: rgb(250 250 253 / 0.64);
+  --app-glass-rim: rgb(255 255 255 / 0.82);
+  --app-glass-highlight: rgb(255 255 255 / 0.75);
+  --app-sheet-tint: rgb(248 248 252 / 0.90);
+  --app-fill: rgb(120 110 150 / 0.08);
+  --app-hairline: rgb(255 255 255 / 0.75);
+  --app-edge: rgb(70 50 120 / 0.10);
+  --app-shadow: 0 1px 2px rgb(30 28 45 / 0.03), 0 12px 36px rgb(30 28 45 / 0.06);
+  --app-positive: #087f50;
+  --app-text-gradient: linear-gradient(110deg, #7b2fe0 0%, #2a8fa6 60%, #0a9a62 100%);
+  --app-glow-purple: rgb(153 69 255 / 0.11);
+  --app-glow-green: color-mix(in srgb, var(--sol-green) 8%, transparent);
+  --app-glow-teal: color-mix(in srgb, var(--sol-teal) 7%, transparent);
+
+  --app-max: 1180px;
+  --app-topbar-h: 56px;
+  --app-radius: 28px;
+  --app-action-room: calc(92px + env(safe-area-inset-bottom));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #0a0b0f;
+    --app-surface: rgb(24 25 33 / 0.90);
+    --app-glass-tint: rgb(28 29 38 / 0.62);
+    --app-glass-rim: rgb(240 240 255 / 0.12);
+    --app-glass-highlight: rgb(245 245 255 / 0.08);
+    --app-sheet-tint: rgb(29 30 39 / 0.88);
+    --app-fill: rgb(255 255 255 / 0.05);
+    --app-hairline: rgb(255 255 255 / 0.08);
+    --app-edge: rgb(255 255 255 / 0.06);
+    --app-shadow: 0 1px 0 rgb(255 255 255 / 0.025) inset, 0 14px 40px rgb(0 0 0 / 0.24);
+    --app-positive: var(--sol-green);
+    --app-text-gradient: var(--sol-gradient);
+    --app-glow-purple: rgb(153 69 255 / 0.16);
+    --app-glow-green: color-mix(in srgb, var(--sol-green) 7%, transparent);
+    --app-glow-teal: color-mix(in srgb, var(--sol-teal) 7%, transparent);
+  }
+}
+
+/* Puppertino setzt die Akzentfarbe per :where(*) auf JEDEM Element neu (Blau); gleiche Spezifität,
+   später geladen: so gewinnt die Marke. --p-control-accent bleibt, damit iOS-Schalter grün sind. */
+:where(*) {
+  --p-color-current: var(--ui-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(.p-auto-dark-mode, .p-auto-dark-mode *) {
+    --p-color-current: var(--ui-accent-dark);
+  }
+}
+
+/* 2 · App-Hintergrund ---------------------------------------------------------- */
+body.app-body {
+  --p-list-touch-bg: var(--app-surface);
+  --p-bottom-sheet-bg: var(--app-sheet-tint);
+  min-height: 100dvh;
+  margin: 0;
+  background: var(--app-bg);
+}
+
+body.app-body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 56vmax 38vmax at 2% 0%, var(--app-glow-purple), transparent 72%),
+    radial-gradient(ellipse 48vmax 38vmax at 100% 100%, var(--app-glow-teal), transparent 72%);
+}
+
+.app-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Material für Inhaltsflächen */
+.app-material {
+  border: 1px solid var(--app-hairline);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
+}
+
+/* 3 · Kopfleiste --------------------------------------------------------------- */
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  max-width: var(--app-max);
+  margin-inline: auto;
+  padding: calc(var(--ui-space-2) + env(safe-area-inset-top)) max(var(--ui-margin), env(safe-area-inset-right)) 0 max(var(--ui-margin), env(safe-area-inset-left));
+  pointer-events: none;
+}
+
+.app-topbar__inner {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  min-height: var(--app-topbar-h);
+  padding: var(--ui-space-1) var(--ui-space-2) var(--ui-space-1) var(--ui-space-3);
+  border: 1px solid var(--app-glass-rim);
+  border-radius: 999px;
+  background: linear-gradient(150deg, var(--app-glass-highlight), transparent 45%), var(--app-glass-tint);
+  box-shadow: inset 0 1px var(--app-glass-highlight), 0 6px 20px var(--app-edge);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  backdrop-filter: blur(18px) saturate(120%);
+  pointer-events: auto;
+}
+
+.app-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+}
+
+.app-topbar__actions .p-nav-bar__button,
+.app-topbar__actions .app-wallet-chip {
+  background: var(--app-fill);
+  box-shadow: inset 0 0 0 1px var(--app-edge);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.app-topbar__actions :is(.p-nav-bar__button, .app-wallet-chip):hover:not(:disabled) {
+  background: var(--app-glass-highlight);
+}
+
+.app-topbar__actions :is(.p-nav-bar__button, .app-wallet-chip):focus-visible {
+  outline: 2px solid var(--p-color-current);
+  outline-offset: 2px;
+}
+
+.app-topbar__actions .p-nav-bar__button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--p-text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.app-brand__mark {
+  display: block;
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+
+.app-wallet-chip {
+  gap: var(--ui-space-2);
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+.app-account-button {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--app-fill);
+}
+
+.app-account-button[aria-pressed="true"] {
+  color: var(--p-color-current);
+  box-shadow: inset 0 0 0 1px var(--p-color-current);
+}
+
+@media (max-width: 599px) {
+  .app-wallet-chip > span,
+  .app-wallet-chip > .ph-caret-down {
+    display: none;
+  }
+
+  .app-wallet-chip {
+    width: 44px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 359px) {
+  .app-wallet-chip {
+    padding-inline: var(--ui-space-2);
+  }
+
+  .app-wallet-chip > .ph-caret-down {
+    display: none;
+  }
+}
+
+/* 4 · Seite und Raster ---------------------------------------------------------------- */
+.app-main {
+  box-sizing: border-box;
+  max-width: var(--app-max);
+  margin-inline: auto;
+  padding: var(--ui-space-6) max(var(--ui-margin), env(safe-area-inset-right)) var(--ui-space-12) max(var(--ui-margin), env(safe-area-inset-left));
+}
+
+.app-main.app-has-action {
+  padding-bottom: calc(var(--app-action-room) + var(--ui-space-6));
+}
+
+.app-layout,
+.app-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-space-4);
+}
+
+@media (min-width: 600px) {
+  .app-layout,
+  .app-summary {
+    gap: clamp(var(--ui-space-4), 4vw, var(--ui-space-10));
+  }
+
+  .app-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-main.app-has-action {
+    padding-bottom: var(--ui-space-12);
+  }
+
+  .app-action-bar {
+    display: none !important;
+  }
+
+  .app-mobile-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1099px) {
+  .app-desktop-only {
+    display: none !important;
+  }
+}
+
+/* Sehr breite und gebogene Monitore: Inhalt bleibt in der Mitte, etwas großzügiger */
+@media (min-width: 1800px) {
+  :root {
+    --app-max: 1280px;
+  }
+}
+
+.app-enter {
+  animation: app-enter 0.45s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* 5 · Start -------------------------------------------------------------------- */
+.app-start {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - var(--app-topbar-h) - var(--ui-space-2) - 2 * var(--ui-space-12));
+}
+
+.app-hero {
+  box-sizing: border-box;
+  display: grid;
+  justify-items: center;
+  gap: var(--ui-space-4);
+  width: min(560px, 100%);
+  padding: clamp(28px, 5vw, 48px) clamp(20px, 4vw, 44px);
+  border-radius: 34px;
+  text-align: center;
+}
+
+.app-hero__mark {
+  display: block;
+  width: clamp(56px, 10vw, 68px);
+  height: auto;
+  margin: var(--ui-space-1) 0 var(--ui-space-3);
+}
+
+.p-type .app-hero__title {
+  margin: 0;
+  color: var(--p-text-primary);
+  font-size: clamp(30px, 4.6vw, 44px);
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.app-hero__text {
+  max-width: 40ch;
+  color: var(--p-text-secondary);
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.app-hero .p-button {
+  margin-top: var(--ui-space-2);
+}
+
+.app-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--app-fill);
+  color: var(--p-text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.app-facts i {
+  color: var(--p-color-current);
+}
+
+/* 6 · Beträge mit Solana-Zeichen ------------------------------------------------- */
+.app-sol {
+  flex: none;
+  width: 1.05em;
+  height: 0.84em;
+}
+
+.app-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.app-amount__unit {
+  color: var(--p-text-secondary);
+  font-weight: 600;
+}
+
+.app-gradient-text,
+.app-gradient-amount > span:not(.app-amount__unit) {
+  background: var(--app-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Werte und Schalter ans Zeilenende (statt Inline-Style, wegen der CSP) */
+.app-push {
+  margin-left: auto;
+}
+
+.app-payout {
+  display: grid;
+  align-content: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  min-height: clamp(128px, 21vw, 220px);
+  padding: clamp(var(--ui-space-4), 3vw, var(--ui-space-8));
+  border-radius: var(--app-radius);
+}
+
+.p-type .app-payout__label {
+  margin: 0;
+  color: var(--p-text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.app-payout__value {
+  font-size: clamp(26px, 4.5vw, 44px);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.app-payout__value .app-amount {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+.app-payout__value .app-amount > span,
+.app-payout__usd {
+  overflow-wrap: anywhere;
+}
+
+.app-payout__usd {
+  color: var(--p-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.app-payout__meta {
+  color: var(--p-text-secondary);
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.app-payout .p-button {
+  margin-top: var(--ui-space-3);
+}
+
+.app-row-amount {
+  color: var(--app-positive);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* 7 · Tokenlisten ---------------------------------------------------------------- */
+.app-tokens {
+  min-width: 0;
+  padding: clamp(var(--ui-space-3), 2.5vw, var(--ui-space-6));
+  border-radius: var(--app-radius);
+}
+
+.app-search {
+  margin-bottom: var(--ui-space-2);
+}
+
+.app-tokens > .app-search:not(:first-child) {
+  margin-top: var(--ui-space-6);
+}
+
+.app-search .p-bar-search {
+  background: var(--app-surface);
+}
+
+.app-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  margin: var(--ui-space-6) 0 var(--ui-space-2);
+  padding-inline: var(--ui-space-4) var(--ui-space-1);
+}
+
+@media (max-width: 359px) {
+  .app-tokens .app-group-head:has(> button) {
+    flex-wrap: wrap;
+    gap: var(--ui-space-1);
+    padding-inline: var(--ui-space-1) 0;
+  }
+}
+
+.app-tokens > :first-child {
+  margin-top: 0;
+}
+
+.p-type .app-group-title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--p-text-primary);
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 22px;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-count {
+  color: var(--p-text-secondary);
+  font-weight: 500;
+}
+
+.app-group-head .p-button {
+  flex: none;
+}
+
+.app-tokens .p-list-touch {
+  --p-list-touch-bg: transparent;
+  border: 1px solid var(--app-edge);
+  background: var(--app-fill);
+}
+
+/* Ganze Zeile ist das Label der Checkbox */
+.app-select-row,
+.app-row-button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--ui-space-3);
+  min-width: 0;
+  min-height: inherit;
+  cursor: pointer;
+}
+
+.app-row-button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+.app-row-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--p-color-current) 50%, transparent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.app-row-button.app-destructive .p-list-title {
+  color: var(--p-sys-red);
+}
+
+.app-select-list .ui-check:checked ~ .p-list-label .p-list-title {
+  color: var(--p-text-primary);
+}
+
+.app-select-row .p-list-label,
+.app-oneline .p-list-label {
+  min-width: 0;
+}
+
+.app-select-row .p-list-title,
+.app-select-row .p-list-subtitle,
+.app-oneline .p-list-title,
+.app-oneline .p-list-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-select-row .app-row-amount {
+  margin-left: auto;
+}
+
+/* Keep the token name readable beside the amount on narrow screens. */
+@media (max-width: 599px) {
+  .app-select-row {
+    display: grid;
+    grid-template-columns: 24px 32px minmax(0, 1fr);
+    column-gap: var(--ui-space-2);
+    row-gap: 4px;
+    padding-block: var(--ui-space-2);
+  }
+
+  .app-select-row > .ui-check,
+  .app-select-row > .app-avatar {
+    grid-row: 1 / span 2;
+  }
+
+  .app-select-row > .app-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .app-select-row > .p-list-label {
+    grid-column: 3;
+  }
+
+  .app-select-row .p-list-subtitle {
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  .app-select-row > .app-row-amount {
+    grid-column: 3;
+    margin-left: 0;
+    font-size: 13px;
+  }
+
+  .p-bottom-sheet .p-list-row:has(> .app-avatar) {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .p-bottom-sheet .p-list-row > .app-avatar {
+    grid-row: 1 / span 2;
+  }
+
+  .p-bottom-sheet .p-list-row:has(> .app-avatar) > .p-list-detail {
+    grid-column: 2;
+    margin-left: 0;
+  }
+
+  .p-bottom-sheet .app-oneline .p-list-subtitle {
+    white-space: normal;
+  }
+}
+
+.app-wallet-summary {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+}
+
+.app-wallet-summary > .p-list-detail {
+  grid-column: 2;
+  margin-left: 0;
+  font-size: 15px;
+}
+
+.app-wallet-summary .app-amount {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+/* Monogramm wie in Apples Kontakten, Farben aus dem Solana-Verlauf */
+.app-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--app-tint, var(--sol-purple));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.app-tint-0 { --app-tint: linear-gradient(135deg, #9945ff, #6f5cf2); }
+.app-tint-1 { --app-tint: linear-gradient(135deg, #7b5cf3, #43b4ca); }
+.app-tint-2 { --app-tint: linear-gradient(135deg, #43b4ca, #14b98a); }
+.app-tint-3 { --app-tint: linear-gradient(135deg, #b84dff, #9945ff); }
+.app-tint-4 { --app-tint: linear-gradient(135deg, #3f97d9, #6f5cf2); }
+.app-tint-5 { --app-tint: linear-gradient(135deg, #14b98a, #3f97d9); }
+.app-tint-6 { --app-tint: linear-gradient(135deg, #8a5cf6, #3f97d9); }
+.app-tint-7 { --app-tint: linear-gradient(135deg, #5c6cf0, #9945ff); }
+
+.app-warn-icon,
+.p-list-touch .app-warn-icon {
+  color: var(--p-sys-orange);
+}
+
+.app-dim .p-list-title,
+.app-dim .app-avatar {
+  opacity: 0.7;
+}
+
+/* Aufklapper für „Nicht möglich“ */
+.app-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.app-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-disclosure > summary i {
+  color: var(--p-text-secondary);
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.app-disclosure[open] > summary i {
+  transform: rotate(180deg);
+}
+
+.app-disclosure > summary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--p-color-current) 50%, transparent);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* 8 · Hinweise, Fehler, Laden ----------------------------------------------------- */
+.app-note {
+  margin: var(--ui-space-2) 0 0;
+  padding-inline: var(--ui-space-4);
+  color: var(--p-text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.app-note-strong {
+  color: var(--p-text-primary);
+}
+
+.app-field-error {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding-inline: var(--ui-space-4);
+  color: var(--p-text-primary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.app-field-error i {
+  color: var(--p-sys-red);
+}
+
+.app-note,
+.app-field-error,
+.p-list-subtitle {
+  overflow-wrap: anywhere;
+}
+
+.app-scan-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  border-radius: 20px;
+  color: var(--p-text-primary);
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.app-scan-warning > i {
+  flex: none;
+  color: var(--p-sys-orange);
+  font-size: 20px;
+}
+
+.app-readonly-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: 16px;
+  background: var(--app-fill);
+}
+
+.p-type .p-empty-state__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.p-type .p-empty-state__message {
+  margin: 0;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.app-loading {
+  display: grid;
+  justify-items: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-12) var(--ui-margin);
+  color: var(--p-text-secondary);
+  text-align: center;
+}
+
+.app-wallet-empty .p-empty-state__glyph {
+  color: var(--p-sys-blue);
+}
+
+/* Status in Fortschrittszeilen: Farbe nie allein, immer mit Text */
+.p-list-touch .app-status-ok { color: var(--app-positive); }
+.p-list-touch .app-status-fail { color: var(--p-sys-red); }
+.p-list-touch .app-status-wait { color: var(--p-text-tertiary); }
+
+.app-link {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--p-color-current);
+  text-decoration: none;
+}
+
+.app-link:hover,
+.app-link:focus-visible {
+  background: var(--app-fill);
+}
+
+/* 9 · Hauptaktion (Solana-Verlauf) und Leiste unten auf dem Handy ------------------- */
+.p-button.app-cta:not(:disabled) {
+  background: var(--app-cta-gradient);
+  box-shadow: 0 12px 30px -12px var(--app-glow-purple);
+  color: #fff;
+  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1), filter 0.2s;
+}
+
+.p-button.app-cta:not(:disabled):hover {
+  filter: brightness(1.07) saturate(1.05);
+}
+
+.p-button.app-cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.app-wide {
+  width: 100%;
+}
+
+.p-button.app-wide {
+  height: auto;
+  min-height: 50px;
+  padding-block: 12px;
+  line-height: 22px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.app-action-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  justify-items: center;
+  padding: var(--ui-space-6) max(var(--ui-margin), env(safe-area-inset-left)) max(var(--ui-space-4), env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--app-bg) 30%, transparent);
+  pointer-events: none;
+}
+
+.app-action-bar > * {
+  max-width: 560px;
+  pointer-events: auto;
+}
+
+/* 10 · Sheets: Glas; auf dem PC als zentrierter Dialog statt unten angeklebt ------------ */
+body.app-body .p-modal-background::before {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.p-bottom-sheet {
+  border: 1px solid var(--app-glass-rim);
+  box-shadow: inset 0 1px var(--app-glass-highlight), var(--app-shadow);
+  background: linear-gradient(145deg, var(--app-glass-highlight), transparent 48%), var(--app-sheet-tint);
+  -webkit-backdrop-filter: blur(22px) saturate(115%);
+  backdrop-filter: blur(22px) saturate(115%);
+}
+
+.p-bottom-sheet__header .p-nav-bar__button {
+  background: var(--app-glass-highlight);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.p-bottom-sheet .p-list-touch {
+  --p-list-touch-bg: var(--app-fill);
+}
+
+.p-bottom-sheet__body {
+  overscroll-behavior: contain;
+}
+
+.p-alert__surface {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.p-alert__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+
+.p-alert__actions {
+  flex: none;
+}
+
+@media (min-width: 900px) {
+  .p-bottom-sheet {
+    --p-bottom-sheet-width: 520px;
+    top: 50%;
+    bottom: auto;
+    height: auto;
+    max-height: min(86vh, 860px);
+    border-radius: 32px;
+    opacity: 0;
+    translate: -50% -46%;
+    transition: translate 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
+  }
+
+  .p-bottom-sheet.active {
+    opacity: 1;
+    translate: -50% -50%;
+  }
+
+  .p-bottom-sheet .p-bottom-sheet__grabber {
+    display: none;
+  }
+}
+
+.app-sheet-footer {
+  flex: none;
+  display: grid;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3) var(--ui-space-4) max(var(--ui-space-4), env(safe-area-inset-bottom));
+}
+
+.app-sheet-footer:empty {
+  display: none;
+}
+
+.app-sheet-section + .app-sheet-section {
+  margin-top: var(--ui-space-5);
+}
+
+.app-sheet-hero {
+  display: grid;
+  justify-items: center;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-2) 0 var(--ui-space-5);
+  text-align: center;
+}
+
+.app-sheet-hero .app-payout__value {
+  font-size: clamp(30px, 8vw, 40px);
+}
+
+.app-progress {
+  width: 100%;
+  margin: 0 0 var(--ui-space-4);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body.app-body .p-modal-background::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .app-topbar__inner,
+  .p-bottom-sheet {
+    background: var(--app-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-enter,
+  .app-disclosure > summary i,
+  .p-bottom-sheet,
+  .p-button.app-cta {
+    animation: none;
+    transition: none;
+  }
+}

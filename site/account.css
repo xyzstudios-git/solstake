@@ -1,0 +1,556 @@
+/* Account — the same typography and materials as the main app. */
+.app-account {
+  display: grid;
+  gap: var(--ui-space-6);
+  padding-block: var(--ui-space-2);
+}
+
+.app-account-heading,
+.app-account-identity,
+.app-account-overview-head,
+.app-account-graph-head,
+.app-account-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+}
+
+.app-account-identity {
+  justify-content: flex-start;
+}
+
+.p-type .app-account-title {
+  margin: 0 0 4px;
+  color: var(--p-text-primary);
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.app-account-wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--p-text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+  text-decoration: none;
+}
+
+.app-account-wallet:hover {
+  color: var(--p-text-primary);
+}
+
+.app-account-back,
+.app-account-refresh,
+.app-account-explorer {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.app-account-overview,
+.app-account-history {
+  min-width: 0;
+  border-radius: var(--app-radius);
+  overflow: hidden;
+}
+
+.app-account-overview {
+  padding: clamp(20px, 3vw, 36px);
+}
+
+.app-account-overview-head {
+  align-items: flex-end;
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+
+.app-account-caption {
+  color: var(--p-text-secondary);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.app-account-total {
+  margin-block: 8px 12px;
+  color: var(--p-text-primary);
+  font-size: clamp(30px, 5vw, 50px);
+  line-height: 1.1;
+  font-weight: 720;
+  letter-spacing: -0.035em;
+}
+
+.app-account-total .app-sol {
+  color: var(--p-color-current);
+}
+
+.app-account-total .app-amount {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+.app-account-total .app-amount > span {
+  overflow-wrap: anywhere;
+}
+
+.app-account-usd {
+  flex: none;
+  padding-bottom: 2px;
+  color: var(--p-text-secondary);
+  text-align: right;
+  font-size: 20px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-account-footnote {
+  color: var(--p-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.app-account-graph-head {
+  margin-bottom: var(--ui-space-3);
+}
+
+.app-account-range {
+  --p-seg-touch-h: 48px;
+  width: min(270px, 100%);
+  flex: none;
+}
+
+.app-account-range .p-segment {
+  min-height: 44px;
+}
+
+.app-account-figure {
+  margin: 0;
+}
+
+.app-account-chart {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+  color: var(--p-color-current);
+}
+
+.app-account-grid-line {
+  stroke: var(--app-edge);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.app-account-chart-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.app-account-chart-plot {
+  min-width: 0;
+}
+
+.app-account-y-axis,
+.app-account-x-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--p-text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-account-y-axis {
+  flex-direction: column;
+  padding-block: 8px 28px;
+  text-align: right;
+}
+
+.app-account-chart-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.app-account-chart-point {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 3;
+  cursor: crosshair;
+}
+
+.app-account-chart-point:hover,
+.app-account-chart-point:focus-visible {
+  fill: var(--app-surface);
+  stroke: currentColor;
+  outline: none;
+}
+
+.app-account-chart-readout {
+  min-height: 20px;
+  margin-top: 4px;
+  color: var(--p-text-secondary);
+  text-align: right;
+  font-size: 12px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-account-chart-data {
+  margin-top: 12px;
+  color: var(--p-text-secondary);
+  font-size: 12px;
+}
+
+.app-account-chart-data > summary {
+  width: fit-content;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.app-account-chart-data table {
+  width: 100%;
+  margin-bottom: var(--ui-space-3);
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-account-chart-data :is(th, td) {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--app-edge);
+  text-align: left;
+}
+
+.app-account-chart-data :is(th, td):last-child {
+  text-align: right;
+}
+
+.app-account-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ui-space-5);
+  padding-top: var(--ui-space-6);
+  margin-top: var(--ui-space-5);
+  border-top: 1px solid var(--app-edge);
+}
+
+.app-account-metric {
+  min-width: 0;
+}
+
+.app-account-metric-value {
+  margin-block: 8px 6px;
+  color: var(--p-text-primary);
+  font-size: clamp(18px, 2.2vw, 26px);
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.app-account-metric-value .app-amount {
+  flex-wrap: wrap;
+  gap: 0.22em;
+  white-space: normal;
+}
+
+.app-account-metric-value .app-amount > span {
+  overflow-wrap: anywhere;
+}
+
+.app-account-history-head {
+  padding: 24px 28px 20px;
+}
+
+.p-type .app-account-section-title {
+  margin: 0;
+  color: var(--p-text-primary);
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 24px;
+  letter-spacing: -0.02em;
+}
+
+.app-account-transactions {
+  margin: 0;
+  padding: 0 28px;
+  list-style: none;
+}
+
+.app-account-transaction {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto 44px;
+  align-items: center;
+  gap: 14px;
+  padding-block: 20px;
+  border-top: 1px solid var(--app-edge);
+}
+
+.app-account-transaction-icon {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--app-fill);
+  font-size: 20px;
+}
+
+.app-account-transaction-main {
+  min-width: 0;
+}
+
+.app-account-transaction-title {
+  color: var(--p-text-primary);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.app-account-transaction-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.app-account-transaction-count {
+  color: var(--p-text-secondary);
+}
+
+.app-account-transaction-amount {
+  align-self: start;
+  padding-top: 2px;
+  text-align: right;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-account-transaction-amount .app-account-footnote {
+  font-weight: 400;
+}
+
+.app-account-transaction-amount .app-amount {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  white-space: normal;
+}
+
+.app-account-transaction-error {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.app-account-status-ok {
+  color: var(--app-positive);
+}
+
+.app-account-status-pending {
+  color: var(--p-text-secondary);
+}
+
+.app-account-status-failed {
+  color: var(--p-sys-red);
+}
+
+.app-account-muted {
+  color: var(--p-text-secondary);
+}
+
+.app-account-history-empty,
+.app-account-chart-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  min-height: 210px;
+  padding: 28px 20px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.app-account-chart-empty {
+  min-height: 232px;
+  margin-top: var(--ui-space-4);
+  border-radius: 20px;
+  background: var(--app-fill);
+}
+
+.app-account-empty-icon {
+  margin-bottom: 4px;
+  color: var(--p-text-tertiary);
+  font-size: 30px;
+}
+
+.app-account-empty-title {
+  max-width: 30ch;
+  color: var(--p-text-primary);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+}
+
+.app-account-history-empty .app-account-footnote,
+.app-account-chart-empty .app-account-footnote {
+  max-width: 46ch;
+}
+
+.app-account-warning {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: var(--app-fill);
+  color: var(--p-text-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.app-account-warning > i {
+  flex: none;
+  margin-top: 2px;
+  color: var(--p-sys-orange);
+}
+
+.app-account-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.app-account :is(button, a, summary, input):focus-visible {
+  outline: 2px solid var(--p-color-current);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+@media (max-width: 599px) {
+  .app-account {
+    gap: var(--ui-space-4);
+    padding-top: 0;
+  }
+
+  .app-account-overview {
+    padding: 20px 16px;
+  }
+
+  .app-account-overview-head {
+    display: grid;
+    align-items: start;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .app-account-usd {
+    text-align: left;
+    font-size: 17px;
+  }
+
+  .app-account-graph-head {
+    display: grid;
+    gap: 10px;
+  }
+
+  .app-account-range {
+    width: 100%;
+  }
+
+  .app-account-metrics {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding-top: 20px;
+  }
+
+  .app-account-metric {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 12px;
+  }
+
+  .app-account-metric-value {
+    margin: 0;
+    font-size: 18px;
+    text-align: right;
+  }
+
+  .app-account-metric-value .app-amount {
+    justify-content: flex-end;
+  }
+
+  .app-account-metric .app-account-footnote {
+    grid-column: 1 / -1;
+  }
+
+  .app-account-history-head {
+    display: grid;
+    gap: 4px;
+    padding: 20px 16px 16px;
+  }
+
+  .app-account-transactions {
+    padding-inline: 16px;
+  }
+
+  .app-account-transaction {
+    grid-template-columns: 32px minmax(0, 1fr) 44px;
+    gap: 10px;
+    padding-block: 16px;
+  }
+
+  .app-account-transaction-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
+  }
+
+  .app-account-transaction-amount {
+    grid-column: 2;
+    grid-row: 2;
+    padding-top: 0;
+    text-align: left;
+    font-size: 14px;
+  }
+
+  .app-account-transaction-amount .app-amount {
+    justify-content: flex-start;
+  }
+
+  .app-account-explorer {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
+  .app-account-chart-readout {
+    text-align: left;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .app-account-grid-line {
+    stroke: var(--p-text-secondary);
+  }
+
+  .app-account-overview,
+  .app-account-history {
+    border-color: var(--p-text-secondary);
+  }
+}

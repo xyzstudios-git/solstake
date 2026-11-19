@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.jup.ag; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>Solfund – Burn tokens, reclaim SOL</title>
+  <meta name="description" content="Burn unwanted Solana tokens and close their accounts. Reclaim the rent to your wallet with no service fee.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <!-- Reihenfolge: Puppertino, Icons, apple-ui-Schicht, eigene App-Bausteine -->
+  <link rel="stylesheet" href="vendor/puppertino/puppertino-mobile.min.css">
+  <link rel="stylesheet" href="vendor/phosphor/bold/style.css">
+  <link rel="stylesheet" href="vendor/phosphor/fill/style.css">
+  <link rel="stylesheet" href="apple-ui.css">
+  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="account.css">
+</head>
+<body class="p-type p-auto-dark-mode app-body">
+  <!-- Solana-Zeichen als SOL-Symbol bei Beträgen; einmal definiert, überall per <use> -->
+  <svg class="app-sprite" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="sol-gradient" x1="0" y1="80" x2="100" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#9945FF"/>
+        <stop offset="0.55" stop-color="#43B4CA"/>
+        <stop offset="1" stop-color="#19FB9B"/>
+      </linearGradient>
+      <symbol id="sol-mark" viewBox="0 0 100 80">
+        <path fill="url(#sol-gradient)" stroke="url(#sol-gradient)" stroke-width="4" stroke-linejoin="round"
+              d="M18 3H97L83 17H4Z M4 33H83L97 47H18Z M18 63H97L83 77H4Z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <header class="app-topbar">
+    <div class="app-topbar__inner">
+      <div class="app-brand">
+        <img class="app-brand__mark" src="icon.svg" alt="" width="34" height="34">
+        <span class="app-brand__name">Solfund</span>
+      </div>
+      <div class="app-topbar__actions" role="group" aria-label="Quick actions">
+        <button id="header-address" class="p-nav-bar__button" type="button" aria-label="View an address" title="View an address" aria-haspopup="dialog" aria-controls="address-sheet">
+          <i class="ph-bold ph-eye" aria-hidden="true"></i>
+        </button>
+        <button id="header-connect" class="p-nav-bar__button" type="button" aria-label="Connect wallet" title="Connect wallet">
+          <i class="ph-bold ph-wallet" aria-hidden="true"></i>
+        </button>
+        <button id="header-refresh" class="p-nav-bar__button" type="button" aria-label="Reload accounts" title="Reload accounts" hidden>
+          <i class="ph-bold ph-arrow-clockwise" aria-hidden="true"></i>
+        </button>
+        <button id="wallet-chip" class="p-button p-button-touch-small p-button-default app-wallet-chip" type="button" aria-haspopup="dialog" aria-controls="account-sheet" hidden></button>
+        <button id="header-account" class="p-button p-button-touch-small p-button-default app-account-button" type="button" aria-label="Account and history" aria-pressed="false" title="Account and history" hidden>
+          <i class="ph-bold ph-user-circle" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="app-main"></main>
+
+  <!-- Hauptaktion auf dem Handy unten; auf dem PC sitzt sie in der Auszahlungs-Karte -->
+  <div id="action-bar" class="app-action-bar" hidden>
+    <button id="review-button" class="p-button p-button-touch-large p-button-primary app-cta app-wide" type="button">Review selection</button>
+  </div>
+
+  <!-- Ein Modal-Hintergrund für alle Sheets und Alerts -->
+  <div class="p-modal-background">
+    <div class="p-modal p-bottom-sheet" id="wallet-sheet" data-p-detents="60,92" data-p-close-on-outside="true"
+         role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="wallet-sheet-title">
+      <div class="p-bottom-sheet__grabber"></div>
+      <div class="p-bottom-sheet__header">
+        <button class="p-nav-bar__button" type="button" aria-label="Close" data-p-cancel><i class="ph-bold ph-x" aria-hidden="true"></i></button>
+        <h2 class="p-bottom-sheet__title" id="wallet-sheet-title">Choose wallet</h2>
+        <span></span>
+      </div>
+      <div class="p-bottom-sheet__body" id="wallet-sheet-body"></div>
+    </div>
+
+    <div class="p-modal p-bottom-sheet" id="address-sheet" data-p-detents="50,92" data-p-close-on-outside="true"
+         role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="address-sheet-title">
+      <div class="p-bottom-sheet__grabber"></div>
+      <div class="p-bottom-sheet__header">
+        <button class="p-nav-bar__button" type="button" aria-label="Cancel" data-p-cancel><i class="ph-bold ph-x" aria-hidden="true"></i></button>
+        <h2 class="p-bottom-sheet__title" id="address-sheet-title">View only</h2>
+        <span></span>
+      </div>
+      <div class="p-bottom-sheet__body ui-stack">
+        <div class="app-note">View the accounts of any address. Connect the matching wallet to burn tokens or claim rewards.</div>
+        <div class="p-field-group-touch">
+          <input id="address-input" class="p-field p-field-touch" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+                 placeholder="Solana address" aria-label="Solana address" aria-describedby="address-error">
+        </div>
+        <div id="address-error" class="app-field-error" hidden></div>
+        <button id="address-submit" class="p-button p-button-touch-large p-button-primary app-cta app-wide" type="button">View accounts</button>
+      </div>
+    </div>
+
+    <!-- Ein Sheet für den ganzen Ablauf: prüfen → ausführen → fertig -->
+    <div class="p-modal p-bottom-sheet p-bottom-sheet-large" id="flow-sheet" data-p-close-on-outside="false"
+         role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="flow-sheet-title">
+      <div class="p-bottom-sheet__header">
+        <button id="flow-close" class="p-nav-bar__button" type="button" aria-label="Close" data-p-cancel><i class="ph-bold ph-x" aria-hidden="true"></i></button>
+        <h2 class="p-bottom-sheet__title" id="flow-sheet-title">Review</h2>
+        <span></span>
+      </div>
+      <div class="p-bottom-sheet__body" id="flow-sheet-body" aria-live="polite"></div>
+      <div class="app-sheet-footer" id="flow-sheet-footer"></div>
+    </div>
+
+    <div class="p-modal p-bottom-sheet" id="account-sheet" data-p-detents="40,92" data-p-close-on-outside="true"
+         role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="account-sheet-title">
+      <div class="p-bottom-sheet__grabber"></div>
+      <div class="p-bottom-sheet__header">
+        <button class="p-nav-bar__button" type="button" aria-label="Close" data-p-cancel><i class="ph-bold ph-x" aria-hidden="true"></i></button>
+        <h2 class="p-bottom-sheet__title" id="account-sheet-title">Wallet</h2>
+        <span></span>
+      </div>
+      <div class="p-bottom-sheet__body" id="account-sheet-body"></div>
+    </div>
+
+    <!-- Extra-Bestätigung, nur wenn Tokens mit Wert oder ohne bekannten Kurs verbrannt würden -->
+    <div class="p-modal p-alert" id="confirm-alert" data-p-close-on-outside="false" role="alertdialog"
+         aria-modal="true" aria-hidden="true" aria-labelledby="confirm-alert-title" aria-describedby="confirm-alert-text">
+      <div class="p-alert__surface">
+        <div class="p-alert__body">
+          <h2 class="p-alert__title" id="confirm-alert-title">Burn these tokens?</h2>
+          <p class="p-alert__message" id="confirm-alert-text"></p>
+        </div>
+        <div class="p-alert__actions">
+          <button class="p-alert__action" type="button" data-p-cancel>Cancel</button>
+          <button id="confirm-burn" class="p-alert__action p-alert__action--destructive" type="button">Burn</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-modal p-alert" id="error-alert" data-p-close-on-outside="true" role="alertdialog"
+         aria-modal="true" aria-hidden="true" aria-labelledby="error-alert-title" aria-describedby="error-alert-text">
+      <div class="p-alert__surface">
+        <div class="p-alert__body">
+          <h2 class="p-alert__title" id="error-alert-title">Something went wrong</h2>
+          <p class="p-alert__message" id="error-alert-text"></p>
+        </div>
+        <div class="p-alert__actions">
+          <button class="p-alert__action" type="button" data-p-close-modal="#error-alert">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Puppertino-Helfer als normale Skripte, danach die App -->
+  <script src="vendor/puppertino/modals.js" defer></script>
+  <script src="vendor/puppertino/sheets.js" defer></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
