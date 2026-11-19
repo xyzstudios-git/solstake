@@ -304,7 +304,9 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.match(findButton($('flow-sheet-footer'), 'Claim with Tip').textContent, /20% tip included/);
 
   walletChange({ accounts: [{ ...walletAccount }] });
-  assert.equal($('flow-sheet').classList.contains('active'), true, 'same-owner renewal preserves the review');
+  wallet.accounts = [{ ...walletAccount, address: nextOwner }, wallet.accounts[0]];
+  walletChange({ features: wallet.features });
+  assert.equal($('flow-sheet').classList.contains('active'), true, 'same-owner renewal and feature updates preserve the reviewed owner');
   failAuthorization = true;
   findButton($('flow-sheet-footer'), 'Claim without Tip').click();
   await until(() => findButton($('flow-sheet-footer'), 'Reconnect wallet'), 'authorization errors offer explicit reconnection');
@@ -440,6 +442,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.equal(saved()[0].tipLamports, submittedTip);
   const chipDuringClaim = $('wallet-chip').textContent;
   walletChange({ accounts: [{ ...walletAccount, address: nextOwner }] });
+  walletChange({ features: wallet.features }); // Must not discard the queued account switch.
   assert.equal($('wallet-chip').textContent, chipDuringClaim, 'extension switching is deferred during the active claim');
   await until(() => saved().every((entry) => entry.status === 'confirmed') && !$('header-refresh').disabled && $('wallet-chip').textContent !== chipDuringClaim, 'deferred wallet account is applied after confirmation');
   assert.equal($('flow-sheet').classList.contains('active'), false);
