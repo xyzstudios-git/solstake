@@ -1,28 +1,40 @@
 import { METHODS, SECURITY_HEADERS, MAX_BODY_BYTES, UPSTREAM_TIMEOUT_MS } from '../server/rpc-policy.js';
 
-async function readBounded(body, limit) {
+async function readBounded(body, limit, timeoutMs) {
   if (!body) return '';
   const reader = body.getReader();
-  const chunks = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > limit) { await reader.cancel(); return null; }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return new TextDecoder().decode(bytes);
+  let timer;
+  const read = async () => {
+    const chunks = [];
+    let size = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) { void reader.cancel().catch(() => {}); return null; }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    return new TextDecoder().decode(bytes);
+  };
+  try {
+    return await Promise.race([
+      read(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Read timeout')), timeoutMs); }),
+    ]);
+  } catch (error) {
+    // Cancellation must not retain the concurrency slot, even if it never settles.
+    void reader.cancel().catch(() => {});
+    throw error;
+  } finally { clearTimeout(timer); }
 }
 
 /** Public runtime. Limits are per isolate; provider-side quota remains necessary. */
 export function createWorker({
   assets = {}, fetchImpl = (...args) => fetch(...args), now = () => Date.now(),
   maxBodyBytes = MAX_BODY_BYTES, maxResponseBytes = 8 * 1024 * 1024,
-  requestsPerMinute = 180, maxConcurrent = 4, maxClients = 2000,
+  requestsPerMinute = 180, maxConcurrent = 4, maxClients = 2000, bodyTimeoutMs = 5000,
 } = {}) {
   const clients = new Map();
   let active = 0;
@@ -75,7 +87,9 @@ export function createWorker({
         active++;
         try {
           if (Number(request.headers.get('content-length')) > maxBodyBytes) return error(413, 'Request too large');
-          const raw = await readBounded(request.body, maxBodyBytes);
+          let raw;
+          try { raw = await readBounded(request.body, maxBodyBytes, bodyTimeoutMs); }
+          catch { return error(408, 'Request body timed out'); }
           if (raw === null) return error(413, 'Request too large');
           let payload;
           try { payload = JSON.parse(raw); } catch { return error(400, 'Invalid JSON'); }
@@ -92,10 +106,10 @@ export function createWorker({
               signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
             });
             if (!upstream.ok || !/^application\/json\b/i.test(upstream.headers.get('content-type') ?? '')) {
-              await upstream.body?.cancel();
+              void upstream.body?.cancel().catch(() => {});
               return error(502, 'Solana RPC unavailable', id);
             }
-            const text = await readBounded(upstream.body, maxResponseBytes);
+            const text = await readBounded(upstream.body, maxResponseBytes, UPSTREAM_TIMEOUT_MS);
             if (text === null) return error(502, 'Solana RPC response too large', id);
             // Never expose provider diagnostic strings, paths or API keys.
             const data = JSON.parse(text);
