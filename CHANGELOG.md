@@ -6,6 +6,9 @@ Changes are recorded by release. Unreleased work is not a published or productio
 
 ### Fixed
 
+- Restored spacing and padding between wallet groups, consistent sheet rows, scrollable mobile reviews, compact fee layouts, and tablet Account metrics.
+- Show the project/design-credit footer only on the disconnected start page.
+
 - Refresh changed or unavailable Pump rewards into a new simulated review, preserving other eligible claims.
 - Allow higher Pump rewards with unchanged instructions while retaining the originally approved tip quote.
 

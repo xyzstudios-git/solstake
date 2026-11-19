@@ -53,7 +53,7 @@ The typography uses the existing system-font stack. No new webfont, Apple font f
 - SOL and USD summaries sit beside each other on wider screens and stack on narrow screens. The token list spans the content width below.
 - The content maximum is 1180 px, increasing to 1280 px on very wide screens. Cards use a 28 px radius. Shared spacing follows a 4 px scale.
 - Glass is concentrated in navigation and modal controls. Content cards use a stable surface for readable values and descriptions.
-- Mobile token rows keep account names, descriptions and amounts readable. Long dialog messages scroll while their actions remain available.
+- Mobile token rows keep account names, descriptions and amounts readable. Wallet groups have separate insets and padding, and sheet content uses consistent 16 px spacing. Long dialog messages scroll while their actions remain available. Mobile sheets fit short contents, while tablets and larger screens use a centered sheet. Account metrics use two columns on tablets and four on larger screens.
 - Account history provides 7-day, 30-day and all-time views, a cumulative chart, an accessible data table, explicit transaction status and explorer links.
 - The interface language is English. Numbers use decimal points, USD uses the dollar format, and dates use `en-US` formatting.
 - The styles include reduced-motion, reduced-transparency and increased-contrast treatments. This is not a claim of complete accessibility conformance.
@@ -64,4 +64,4 @@ Keep the supplied logo geometry and current typography. Show pending claims sepa
 
 The recorded browser checks and their limits are in [`../docs/VERIFICATION.md`](../docs/VERIFICATION.md). Vendor licensing and mark ownership are recorded in [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
-The compact footer contains three equal-width borderless links in one grid: X, the XYZ STUDIOS website and the Solstake repository. All three share the caption and interaction treatment. X and the original GitHub mark use 32 px frames; the transparent studio wordmark fits the same row without stretching. “Designed by:” appears above the studio wordmark; “GitHub” labels the repository link. The footer adapts to light/dark appearance and reserves room for the mobile claim control.
+The compact footer appears only on the disconnected start page and contains three equal-width borderless links in one grid: X, the XYZ STUDIOS website and the Solstake repository. All three share the caption and interaction treatment. X and the original GitHub mark use 32 px frames; the transparent studio wordmark fits the same row without stretching. “Designed by:” appears above the studio wordmark; “GitHub” labels the repository link. The footer adapts to light/dark appearance and reserves room for the mobile claim control.
