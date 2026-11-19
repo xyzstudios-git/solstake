@@ -20,12 +20,15 @@ npm run test:coverage  # Node test coverage for site/lib
 node serve.mjs         # Start without installing development dependencies
 ```
 
-`npm run check` checks JavaScript syntax. No application build, transpiler, database, or Docker service is required. Do not invent lint/build commands that are absent from package.json.
+`npm run check` checks JavaScript syntax. Local development needs no build. `npm run build` produces the hosted Worker; no transpiler, database or Docker service is required. Do not invent lint/build commands that are absent from package.json.
 
 ## Architecture
 
 ```text
 serve.mjs              Local static server and restricted /rpc proxy
+worker/index.js        Public HTTPS runtime and bounded RPC proxy
+server/rpc-policy.js   Shared RPC allowlist and security headers
+tools/build-hosted.mjs Deterministic build with original site assets
 site/index.html        App shell, SVG sprite, sheets and alerts
 site/js/main.js        Wallet, scan, selection, review, execution, history state
 site/js/views.js       Account selection, wallet menus, claim-flow views
@@ -39,7 +42,7 @@ tests/                 Node tests and fixtures
 tools/                 Explicit demo and mainnet-simulation tools
 ```
 
-The browser reads chain data through `/rpc`; only `serve.mjs` receives the configured upstream endpoint. Jupiter price requests go directly from the browser. Plans are simulated before wallet approval, then signed/sent and monitored. History stores this app's submitted claims in local browser storage and checks known signatures; it does not import all wallet history.
+The browser reads chain data through `/rpc`; only the Node server or hosted Worker receives the configured upstream endpoint. Jupiter price requests go directly from the browser. Plans are simulated before wallet approval, then signed/sent and monitored. History stores this app's submitted claims in local browser storage and checks known signatures; it does not import all wallet history.
 
 ## Key modules
 
@@ -83,4 +86,4 @@ Never put endpoint credentials in browser source or print their values.
 
 See `CONTRIBUTING.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`, and `docs/VERIFICATION.md`.
 
-The GitHub repository is `xyzstudios-git/solstake` and is private. The source and design assets have been uploaded. Public visibility and deployment still require a separate explicit go.
+The owner authorized deployment to `solfund.xyzstudios.de` and then public visibility of `xyzstudios-git/solstake` on 19 November 2026. The hosting project identity is tracked in `.openai/hosting.json`; keep credentials in runtime secrets. Preserve the proposed-only license status until the owner chooses a code license.

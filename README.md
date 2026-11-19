@@ -6,11 +6,11 @@
 
 <p align="center"><a href="#quick-start">Run locally</a> · <a href="design/README.md">Design & branding</a> · <a href="docs/ARCHITECTURE.md">Architecture</a> · <a href="docs/VERIFICATION.md">Verification</a></p>
 
-Solstake is a local Solana app for reclaiming account rent, burning unwanted tokens, and claiming supported Pump.fun and PumpSwap cashback. It uses an English interface with locally bundled UI assets. Solstake adds no service fee; Solana network fees still apply.
+Solstake is a Solana web app for reclaiming account rent, burning unwanted tokens, and claiming supported Pump.fun and PumpSwap cashback. It uses an English interface with locally bundled UI assets. Solstake adds no service fee; Solana network fees still apply.
 
 This is a development project. Passing tests does not make it an audited or production-ready wallet application. See [verification and limits](docs/VERIFICATION.md).
 
-The repository is private. Public publication and deployment require separate owner approval.
+The owner has authorized public hosting at [solfund.xyzstudios.de](https://solfund.xyzstudios.de) and public source publication. See the [deployment guide](docs/PUBLISHING.md) for setup and the verification record for tested boundaries.
 
 ## Features
 
@@ -86,7 +86,7 @@ The current development dependency audit has three known high-severity entries f
 
 ## Hosting
 
-The app needs a server-side `/rpc` endpoint. Uploading only `site/` to GitHub Pages or another static host is insufficient. The supplied server binds to loopback and checks its own host and origin; public deployment requires a separately reviewed HTTPS configuration, appropriate origin handling, rate limiting, credential management, and privacy disclosures. Publishing a repository does not deploy the app.
+The public deployment uses the dependency-free Cloudflare Worker in `worker/index.js`. `npm run build` embeds the original `site/` assets into `dist/server/index.js`; configure runtime values separately through the hosting secret store. The local `serve.mjs` continues to bind to loopback. GitHub Pages alone cannot run `/rpc`. See [deployment and rollback](docs/PUBLISHING.md) and [data handling](docs/PRIVACY.md).
 
 ## Using with Codex
 
@@ -96,4 +96,4 @@ The app needs a server-side `/rpc` endpoint. Uploading only `site/` to GitHub Pa
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Bundled third-party assets retain their own licenses in `site/vendor/`. Check the repository's license and asset notices before redistribution.
 
-The proposed code license is [MIT](LICENSE.proposed-MIT), pending the project owner's choice before public publication. See [third-party notices](THIRD_PARTY_NOTICES.md) and the [publishing guide](docs/PUBLISHING.md).
+The [MIT text](LICENSE.proposed-MIT) is a proposal only, not an active license grant. No code license has been selected; public source visibility does not grant general redistribution rights. See [third-party notices](THIRD_PARTY_NOTICES.md) and the [publishing guide](docs/PUBLISHING.md).

@@ -2,7 +2,7 @@
 
 ## Runtime and requests
 
-Solstake has two runtime parts: static browser ES modules under `site/` and the Node.js HTTP server in `serve.mjs`. There is no bundler, database, application package dependency, or build output to generate. Test and demo tooling uses development dependencies from the lockfile.
+Solstake serves the browser ES modules under `site/` using the local Node.js server in `serve.mjs` or the hosted ESM Worker in `worker/index.js`. The deterministic hosted build embeds original assets without a bundler; there is no database or installed application runtime dependency. Shared RPC policies live in `server/rpc-policy.js`. Test and demo tooling uses development dependencies from the lockfile.
 
 ```text
 Browser UI ── same-origin /rpc ── local Node server ── configured Solana RPC
@@ -68,3 +68,5 @@ Only claims submitted through this app after recording was introduced are presen
 `tools/mainnet-sim-check.mjs` performs live read/simulation requests and does not submit transactions. It is separate from the normal automated tests.
 
 A public deployment needs a reviewed server-side `/rpc` endpoint and deployment-specific origin, HTTPS, rate-limit, credential, and privacy handling. Static hosting alone cannot replace the local proxy. See [SECURITY.md](../SECURITY.md).
+
+The hosted Worker uses the same RPC method allowlist and security headers as local development, with explicit HTTPS origins, body deadlines and per-isolate abuse limits. `npm run build` outputs `dist/server/index.js` and the opaque hosting manifest. It reads only shipped source assets; runtime credentials are not build inputs. See [PUBLISHING.md](PUBLISHING.md).
