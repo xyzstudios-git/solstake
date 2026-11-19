@@ -45,7 +45,6 @@ Coverage must be generated from the current checkout. Historical coverage percen
 
 ## Not yet established
 
-- A successful GitHub Actions run for this prepared repository, including Linux/native-dependency compatibility.
 - Independent security audit or public-deployment readiness.
 - End-to-end behavior for every real Phantom, Solflare, Backpack, mobile-wallet, or sign-and-send-only configuration.
 - Execution against every current Pump/PumpSwap layout or future program revision.
@@ -59,4 +58,4 @@ A future release should record its exact commit, runtime/platform, test output, 
 
 On 19 November 2026, the Solstake rename and compact footer extension passed syntax checks for **45 JavaScript modules** and **152 offline tests** on macOS. The additional configuration test verifies `SOLSTAKE_*` precedence while retaining `SOLFUND_*` and `LEERGUT_*` aliases. The supplied XYZ STUDIOS logo retains its artwork and embedded mask image; only the SVG artboard bounds were fitted. The source and runtime copies match.
 
-Code review found no actionable issues. Browser control was unavailable in this chat, so responsive appearance, footer interactions and light/dark layout have not been visually verified in a live browser for this change. Prior browser observations above do not constitute visual approval of the new footer. GitHub CI results must be checked separately after pushing.
+Code review found no actionable issues. Browser control was unavailable in this chat, so responsive appearance, footer interactions and light/dark layout have not been visually verified in a live browser for this change. Prior browser observations above do not constitute visual approval of the new footer. The first private GitHub push also passed both Ubuntu CI jobs (Node.js 24 and 26): [CI run 44531521479](https://github.com/xyzstudios-git/solstake/actions/runs/44531521479), source commit `94cffa12518e30d257936ae86c92c737ae9e95c2`. Both runners completed dependency installation, syntax checks and the offline tests successfully. Later pushes still need their own CI checks.

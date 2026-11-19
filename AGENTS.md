@@ -83,4 +83,4 @@ Never put endpoint credentials in browser source or print their values.
 
 See `CONTRIBUTING.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`, and `docs/VERIFICATION.md`.
 
-The GitHub target is `xyzstudios-git/solstake`. The owner has authorized a private upload. Public visibility and deployment still require a separate explicit go.
+The GitHub repository is `xyzstudios-git/solstake` and is private. The source and design assets have been uploaded. Public visibility and deployment still require a separate explicit go.
