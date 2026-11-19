@@ -200,3 +200,12 @@ test('reconnection is an explicit finished-flow action and never appears during 
   const pending = renderFlowProgressFooter({ done: false, onDone() {}, onReconnect() {} });
   assert.equal(nodes(pending).some((node) => node.tagName === 'BUTTON'), false);
 }));
+
+
+test('updated review clearly explains a changed Pump selection before either claim choice', () => withDom(() => {
+  const plan = { batches: [], failed: [], reclaimLamports: 0, networkFeeLamports: 0 };
+  const parts = renderFlowReady({ plan, state: state(), minFeeLamports: 0, notice: 'Pump rewards changed. Review the updated selection before continuing.' });
+  const notice = parts.find((part) => part.getAttribute('role') === 'status');
+  assert.ok(notice);
+  assert.match(notice.textContent, /Review the updated selection/);
+}));

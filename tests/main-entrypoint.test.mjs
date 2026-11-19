@@ -5,6 +5,7 @@ import { Keypair, VersionedTransaction } from '@solana/web3.js';
 import { encodeBase58 } from '../site/lib/base58.js';
 import { createHistoryStore, summarizeHistory } from '../site/lib/history.js';
 import { TIP_RECIPIENT } from '../site/lib/tips.js';
+import { PUMP_PROGRAM_ID, pumpAccumulatorAddress } from '../site/lib/pump-rewards.js';
 import { TOKEN, WSOL, tokenEntry } from './support/fixtures.mjs';
 
 // A deliberately small DOM adapter for the real entry point. It supplies browser
@@ -167,6 +168,21 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
     pubkey: Keypair.fromSeed(new Uint8Array(32).fill(42)).publicKey.toBase58(),
     mint: Keypair.fromSeed(new Uint8Array(32).fill(43)).publicKey.toBase58(),
   });
+  const nativePumpAddress = await pumpAccumulatorAddress(owner, PUMP_PROGRAM_ID);
+  const pumpReserve = 1_346_200;
+  let pumpAvailable = false;
+  let pumpCashback = 100_000;
+  let mixedSelection = false;
+  let submittedPumpLamports = 0;
+  let submittedRentLamports = emptyAccount.account.lamports;
+  const extraAccounts = Array.from({ length: 14 }, () => tokenEntry({ owner }));
+  const pumpRaw = () => {
+    const data = new Uint8Array(137);
+    data.set([86, 255, 112, 14, 102, 53, 154, 250]);
+    data.set(keypair.publicKey.toBytes(), 8);
+    data[40] = 1; // Preserve the accumulator for pending incentives; only claim cashback.
+    return { owner: PUMP_PROGRAM_ID, executable: false, lamports: pumpReserve + pumpCashback, data: [Buffer.from(data).toString('base64'), 'base64'] };
+  };
   const balance = 100_000_000;
   const actualFee = 5_029;
   const storageValues = new Map();
@@ -224,12 +240,13 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
     let result;
     switch (method) {
       case 'getTokenAccountsByOwner':
-        assert.ok([owner, nextOwner, watchedOwner].includes(params[0]));
+        assert.ok([owner, nextOwner, watchedOwner, nativePumpAddress].includes(params[0]));
         if (params[0] === nextOwner && failNextOwnerScan) throw new Error('Synthetic scan failure');
-        result = { value: params[1].programId !== TOKEN ? [] : params[0] === watchedOwner ? [watchedAccount] : params[0] === owner && (!submittedSignature || refreshClaim) ? [emptyAccount] : [] };
+        result = { value: params[1].programId !== TOKEN ? [] : params[0] === watchedOwner ? [watchedAccount] : params[0] === owner && (!submittedSignature || refreshClaim) ? [emptyAccount, ...(mixedSelection ? extraAccounts : [])] : [] };
         break;
       case 'getBalance': result = { value: balance }; break;
-      case 'getMultipleAccounts': result = { value: params[0].map(() => null) }; break;
+      case 'getMultipleAccounts': result = { value: params[0].map((address) => address === nativePumpAddress && pumpAvailable ? pumpRaw() : null) }; break;
+      case 'getMinimumBalanceForRentExemption': result = pumpReserve; break;
       case 'getRecentPrioritizationFees': result = []; break;
       case 'simulateTransaction':
         assert.equal(signed, calls.filter((call) => call.method === 'sendTransaction').length, 'review simulates without requesting another signature');
@@ -241,11 +258,14 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
           result = { value: { err: hasTip && failTipSimulation ? { InstructionError: [3, { Custom: 1 }] } : null, logs: [], unitsConsumed: 15_000 } };
         }
         break;
-      case 'getLatestBlockhash': result = { value: { blockhash: blockhashRound++ === 0 ? owner : nextOwner, lastValidBlockHeight: 500 } }; break;
+      case 'getLatestBlockhash': result = { value: { blockhash: Keypair.fromSeed(new Uint8Array(32).fill(100 + blockhashRound++)).publicKey.toBase58(), lastValidBlockHeight: 500 } }; break;
       case 'sendTransaction':
         refreshClaim = false;
         submittedTransaction = VersionedTransaction.deserialize(Buffer.from(params[0], 'base64'));
         submittedSignature = encodeBase58(submittedTransaction.signatures[0]);
+        submittedRentLamports = emptyAccount.account.lamports * (mixedSelection ? 15 : 1);
+        submittedPumpLamports = submittedTransaction.message.compiledInstructions.some((ix) => submittedTransaction.message.staticAccountKeys[ix.programIdIndex].toBase58() === PUMP_PROGRAM_ID) ? pumpCashback : 0;
+        if (submittedPumpLamports) pumpAvailable = false;
         assert.equal(submittedTransaction.message.staticAccountKeys[0].toBase58(), owner);
         submittedTip = submittedTransaction.message.compiledInstructions.reduce((sum, ix) => sum + (
           submittedTransaction.message.staticAccountKeys[ix.programIdIndex].toBase58() === '11111111111111111111111111111111'
@@ -263,7 +283,9 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
         const keys = submittedTransaction.message.staticAccountKeys.map((key) => key.toBase58());
         const preBalances = keys.map((_, index) => index === 0 ? balance : 0);
         const postBalances = [...preBalances];
-        postBalances[0] += emptyAccount.account.lamports - actualFee;
+        postBalances[0] += submittedRentLamports + submittedPumpLamports - actualFee - submittedTip;
+        const tipIndex = keys.indexOf(TIP_RECIPIENT);
+        if (tipIndex >= 0) postBalances[tipIndex] += submittedTip;
         result = { blockTime: now / 1000, transaction: { signatures: [submittedSignature], message: { accountKeys: keys } }, meta: { err: null, fee: actualFee, preBalances, postBalances } };
         break;
       }
@@ -448,4 +470,50 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.equal($('flow-sheet').classList.contains('active'), false);
   assert.equal(createHistoryStore({ storage: localStorage }).read(nextOwner).entries.length, 0, 'the captured claim is never attributed to the newly selected wallet');
   assert.equal(saved().length, 2);
+
+  // Reproduce the reported mixed claim: one changing Pump item must not fail all 16 items.
+  mixedSelection = true;
+  pumpAvailable = true;
+  refreshClaim = true;
+  walletChange({ accounts: [walletAccount] });
+  await until(() => !$('header-refresh').disabled && $('review-button').textContent === 'Review selection (16)', 'mixed Pump and token selection is scanned');
+  $('review-button').click();
+  await until(() => findButton($('flow-sheet-footer'), 'Claim without Tip'), 'mixed review is ready');
+  const sentBeforeRefresh = calls.filter((call) => call.method === 'sendTransaction').length;
+  const signedBeforeRefresh = signed;
+  pumpAvailable = false;
+  findButton($('flow-sheet-footer'), 'Claim without Tip').click();
+  await until(() => $('flow-sheet-title').textContent === 'Review' && $('flow-sheet-body').textContent.includes('Skipped') && findButton($('flow-sheet-footer'), 'Claim without Tip'), 'disappearing Pump rewards return to an updated review');
+  assert.equal(signed, signedBeforeRefresh, 'a changed quote is never signed automatically');
+  assert.equal(calls.filter((call) => call.method === 'sendTransaction').length, sentBeforeRefresh);
+  assert.match($('flow-sheet-body').textContent, /15/);
+  findButton($('flow-sheet-footer'), 'Claim without Tip').click();
+  await until(() => saved().length === 3 && saved().every((entry) => entry.status === 'confirmed') && findButton($('flow-sheet-footer'), 'Done'), 'the 15 remaining accounts can be claimed without a tip');
+  assert.equal(submittedTip, 0);
+  assert.equal(submittedPumpLamports, 0);
+  assert.equal(signed, signedBeforeRefresh + 1);
+  findButton($('flow-sheet-footer'), 'Done').click();
+  await until(() => !$('header-refresh').disabled, 'the successful subset is rescanned');
+
+  for (const withTip of [false, true]) {
+    pumpAvailable = true;
+    pumpCashback = 100_000;
+    refreshClaim = true;
+    $('header-refresh').click();
+    await until(() => !$('header-refresh').disabled && $('review-button').textContent === 'Review selection (16)', 'growing rewards are scanned');
+    $('review-button').click();
+    await until(() => findButton($('flow-sheet-footer'), 'Claim without Tip'), 'growing-reward quote is ready');
+    const expectedTip = withTip ? Math.floor((15 * emptyAccount.account.lamports + pumpCashback) / 5) : 0;
+    const before = signed;
+    const historyCount = saved().length;
+    pumpCashback += 50_000;
+    findButton($('flow-sheet-footer'), withTip ? 'Claim with Tip' : 'Claim without Tip').click();
+    await until(() => saved().length === historyCount + 1 && saved().every((entry) => entry.status === 'confirmed') && findButton($('flow-sheet-footer'), 'Done'), 'unchanged instructions can claim growing rewards');
+    assert.equal(signed, before + 1);
+    assert.equal(submittedPumpLamports, 150_000);
+    assert.equal(submittedTip, expectedTip, 'growth never increases an already agreed tip or adds a tip to opt-out');
+    findButton($('flow-sheet-footer'), 'Done').click();
+    await until(() => !$('header-refresh').disabled, 'growth claim is rescanned');
+  }
+
 });

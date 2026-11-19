@@ -266,3 +266,95 @@ test('mixed cleanup plans include Pump instructions and count the recovery once'
   const conflict = { ...reward, reservedAddresses: [normal.address] };
   await assert.rejects(() => prepareBurnPlan({ rpc, owner, items: [{ action: 'close', account: normal }, { action: 'claim-pump', account: conflict }] }), /multiple actions/);
 });
+
+
+const refreshRewardItems = async (options) => (await import('../site/lib/pump-rewards.js')).refreshPumpRewardItems(options);
+const ordinaryItem = () => ({ action: 'close', account: { address: otherOwner, lamports: TOKEN_RESERVE, amount: 0n } });
+const rewardItem = (account) => ({ action: 'claim-pump', account });
+
+test('a selection without Pump rewards does not need any reward RPC', async () => {
+  const items = [ordinaryItem()];
+  const fresh = await refreshRewardItems({ rpc: {}, owner, items });
+  assert.deepEqual(fresh.items, items);
+  assert.equal(fresh.requiresReview, false);
+  assert.deepEqual(fresh.skipped, []);
+});
+
+test('growing rewards with unchanged instructions preserve the reviewed quote and tip base', async () => {
+  const { result, raw, rpc } = await setup([accumulator({ needsClaim: true, lamports: RESERVE + 100_000 }), null, null, null]);
+  const quoted = result.accounts[0];
+  const items = [ordinaryItem(), rewardItem(quoted)];
+  raw[0].lamports += 20_000;
+  const fresh = await refreshRewardItems({ rpc, owner, items });
+  assert.equal(fresh.requiresReview, false);
+  assert.equal(fresh.items[0], items[0]);
+  assert.equal(fresh.items[1].account.lamports, 120_000);
+  assert.equal(quoted.lamports, 100_000, 'the already authorized quote is never mutated');
+  assert.deepEqual(pumpRewardInstructions({ owner, account: fresh.items[1].account }), pumpRewardInstructions({ owner, account: quoted }));
+});
+
+test('disappearing Pump rewards refresh the selection without blocking ordinary accounts', async () => {
+  const { result, raw, rpc } = await setup([accumulator({ lamports: RESERVE + 1000 }), null, null, null]);
+  const ordinary = ordinaryItem();
+  raw[0] = null;
+  const fresh = await refreshRewardItems({ rpc, owner, items: [ordinary, rewardItem(result.accounts[0])] });
+  assert.equal(fresh.requiresReview, true);
+  assert.deepEqual(fresh.items, [ordinary]);
+  assert.equal(fresh.skipped.length, 1);
+  assert.equal(fresh.skipped[0].item.account, result.accounts[0]);
+  assert.match(fresh.skipped[0].error, /not.*available|no longer|not.*claimable/i);
+});
+
+test('lower rewards require a new quote even when the instructions remain identical', async () => {
+  const { result, raw, rpc } = await setup([accumulator({ needsClaim: true, lamports: RESERVE + 1000 }), null, null, null]);
+  raw[0].lamports -= 100;
+  const fresh = await refreshRewardItems({ rpc, owner, items: [rewardItem(result.accounts[0])] });
+  assert.equal(fresh.requiresReview, true);
+  assert.equal(fresh.items[0].account.lamports, 900);
+});
+
+test('new incentive protection requires review even if the quoted total is unchanged', async () => {
+  const { result, raw, rpc } = await setup([accumulator({ lamports: RESERVE + 1000 }), null, null, null]);
+  raw[0] = accumulator({ needsClaim: true, lamports: 2 * RESERVE + 1000 });
+  const fresh = await refreshRewardItems({ rpc, owner, items: [rewardItem(result.accounts[0])] });
+  assert.equal(fresh.requiresReview, true);
+  assert.equal(fresh.items[0].account.lamports, result.accounts[0].lamports);
+  assert.equal(fresh.items[0].account.closesAccumulator, false);
+});
+
+test('a changed temporary WSOL destination requires a new review', async () => {
+  const accumulatorAddress = await pumpAccumulatorAddress(owner, PUMP_SWAP_PROGRAM_ID);
+  const { result, raw, rpc } = await setup([null, accumulator({ programId: PUMP_SWAP_PROGRAM_ID }), wsol(accumulatorAddress, 1000n), null]);
+  raw[3] = { owner: TOKEN_PROGRAM_ID, lamports: TOKEN_RESERVE };
+  const fresh = await refreshRewardItems({ rpc, owner, items: [rewardItem(result.accounts[0])] });
+  assert.equal(fresh.requiresReview, true);
+  assert.notDeepEqual(fresh.items[0].account.reservedAddresses, result.accounts[0].reservedAddresses);
+});
+
+test('verification errors remain visible while non-Pump claims remain available', async () => {
+  const { result, rpc } = await setup([accumulator({ lamports: RESERVE + 1000 }), null, null, null]);
+  const ordinary = ordinaryItem();
+  rpc.getTokenAccounts = async () => { throw new Error('Synthetic reward verification failure'); };
+  const fresh = await refreshRewardItems({ rpc, owner, items: [ordinary, rewardItem(result.accounts[0])] });
+  assert.equal(fresh.requiresReview, true);
+  assert.deepEqual(fresh.items, [ordinary]);
+  assert.match(fresh.skipped[0].error, /Synthetic reward verification failure/);
+  rpc.getMultipleAccounts = async () => { throw new Error('Synthetic RPC unavailable'); };
+  const offline = await refreshRewardItems({ rpc, owner, items: [ordinary, rewardItem(result.accounts[0])] });
+  assert.deepEqual(offline.items, [ordinary]);
+  assert.match(offline.skipped[0].error, /Synthetic RPC unavailable/);
+});
+
+test('new unselected reward accounts are never added by the refresh', async () => {
+  const { result, raw, rpc } = await setup([accumulator({ lamports: RESERVE + 1000 }), null, null, null]);
+  raw[1] = accumulator({ programId: PUMP_SWAP_PROGRAM_ID });
+  const fresh = await refreshRewardItems({ rpc, owner, items: [rewardItem(result.accounts[0])] });
+  assert.equal(fresh.items.length, 1);
+  assert.equal(fresh.items[0].account.address, result.accounts[0].address);
+});
+
+test('reward refresh rejects fabricated or wrong-owner plans before reading RPC', async () => {
+  const { result } = await setup([accumulator({ lamports: RESERVE + 1000 }), null, null, null]);
+  await assert.rejects(refreshRewardItems({ rpc: {}, owner, items: [rewardItem({ ...result.accounts[0] })] }), /Scan Pump rewards/);
+  await assert.rejects(refreshRewardItems({ rpc: {}, owner: otherOwner, items: [rewardItem(result.accounts[0])] }), /Scan Pump rewards/);
+});
