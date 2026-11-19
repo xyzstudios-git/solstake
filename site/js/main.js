@@ -67,6 +67,7 @@ function render() {
   const main = $('main');
   const showingAccount = accountVisible && Boolean(state.owner);
   const listShown = state.phase === 'list' && !showingAccount;
+  $('app-footer').hidden = state.phase !== 'start' || showingAccount;
   if (showingAccount) renderAccountPage();
   if (!showingAccount && state.phase === 'start') setContent(main, views.renderStart({ onConnect: connect, onWatch: openAddressSheet }));
   if (!showingAccount && state.phase === 'loading') setContent(main, views.renderLoading('Loading accounts…'));

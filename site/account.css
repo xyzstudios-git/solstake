@@ -17,7 +17,19 @@
 }
 
 .app-account-identity {
+  min-width: 0;
   justify-content: flex-start;
+}
+
+.app-account-identity > div,
+.app-account-overview-head > div:first-child {
+  min-width: 0;
+}
+
+.app-account-back,
+.app-account-refresh {
+  flex: none;
+  border-radius: 50%;
 }
 
 .p-type .app-account-title {
@@ -441,7 +453,13 @@
   border-radius: 8px;
 }
 
+@media (min-width: 600px) and (max-width: 899px) {
+  .app-account-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 599px) {
+  .app-account-total { font-size: clamp(26px, 7vw, 34px); }
+
   .app-account {
     gap: var(--ui-space-4);
     padding-top: 0;
