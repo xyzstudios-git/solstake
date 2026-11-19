@@ -71,3 +71,12 @@ Coverage for the changed `site/lib/wallet.js` and `site/lib/flow.js` modules com
 These checks use synthetic wallets, mocked RPC and LiteSVM. No real-wallet transaction was signed or submitted, and the affected live browser session was not directly accessible. The owner still needs to reload the app and renew their wallet authorization for a live confirmation.
 
 The additional multi-account review regression failed at `c3d541a` and passed after `c0afb63`: feature-only events preserve the reviewed owner even when another authorized account is first in the wallet list, and later feature events do not discard an account switch queued during confirmation. The final source then passed the full **161-test** offline suite again. Code review closed the account-selection finding and reported no remaining actionable issues.
+
+
+## Changed Pump rewards and mixed claims
+
+On 19 November 2026, the disappearing-reward regression reproduced the reported mixed 16-item failure against pre-fix source `aab40bc`. Tests were added in `7ddddc9`; `d7ff996` makes the synthetic history lookup and rescan barriers deterministic. The GREEN source checkpoint `32d0d0c` passed all **41 focused tests**. The full offline suite then passed **171 tests**, and syntax checks passed for **45 JavaScript modules**.
+
+The entry-point scenario removes a selected Pump reward after review, confirms that no transaction or signature is requested for the changed selection, then explicitly claims the remaining 15 token accounts without a tip. Further scenarios increase cashback before execution and exercise both claim options, checking that the original tip amount is retained. Unit tests cover lower amounts, changed accumulator protection, changed temporary WSOL destinations, per-program and complete scan failures, forged/wrong-owner reward objects, and exclusion of newly discovered unselected rewards. Pump-module coverage was **97.39% lines, 92.36% branches and 96.77% functions**; those percentages apply only to `site/lib/pump-rewards.js`.
+
+Code review reported no actionable findings. The local HTTP server returned all three changed JavaScript modules byte-identically with `Cache-Control: no-store`. Automated checks used mocks or LiteSVM, and no real-wallet transaction was signed or submitted. Browser control was unavailable in this chat; a live wallet claim and rendered-browser confirmation remain unverified.

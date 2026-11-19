@@ -39,6 +39,8 @@ Supported actions recover eligible native SOL cashback or PumpSwap wrapped-SOL c
 
 Unclaimed incentives, tracked volume, non-SOL rewards, or unknown fields keep the accumulator open. The app may still claim a supported cashback amount where the plan allows it. Token-incentive distributions and non-SOL cashback transfers are not implemented.
 
+Before review and again before execution, `refreshPumpRewardItems` revalidates only selected Pump accounts. Missing or unverifiable rewards are excluded with visible reasons; other selected accounts can proceed after a new simulated review and an explicit claim choice. A smaller amount or changed instruction set also requires a new review before any signing. A larger amount with identical instructions can use the original plan and original tip amount; it never increases an agreed tip automatically or selects newly discovered rewards. Original reward objects must still belong to the validated scan and reviewed wallet.
+
 ## Transaction flow
 
 1. `batch.js` packs the selected actions within transaction-size/item limits.

@@ -6,6 +6,9 @@ Changes are recorded by release. Unreleased work is not a published or productio
 
 ### Fixed
 
+- Refresh changed or unavailable Pump rewards into a new simulated review, preserving other eligible claims.
+- Allow higher Pump rewards with unchanged instructions while retaining the originally approved tip quote.
+
 - Respect account-level wallet signing permissions and refresh same-address account authorizations.
 - Stop revoked accounts before wallet requests and provide explicit reconnect/review recovery for authorization errors.
 
