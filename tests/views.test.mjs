@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderAccounts, renderAccountSheet, renderFlowReadyFooter, renderFlowReady } from '../site/js/views.js';
+import { renderAccounts, renderAccountSheet, renderFlowReadyFooter, renderFlowReady, renderFlowProgressFooter } from '../site/js/views.js';
 import { classifyTokenAccount } from '../site/lib/accounts.js';
 import { encodeBase58 } from '../site/lib/base58.js';
 import { shortAddress } from '../site/lib/format.js';
@@ -187,4 +187,16 @@ test('clear search empties the query and returns focus before the filter callbac
   assert.equal(callCount, 1);
   const unfiltered = renderAccounts(state({ accounts }), handlers);
   assert.equal(nodes(unfiltered).some((node) => node.getAttribute('aria-label') === 'Clear search'), false);
+}));
+
+
+test('reconnection is an explicit finished-flow action and never appears during signing', () => withDom(() => {
+  let reconnects = 0;
+  const done = renderFlowProgressFooter({ done: true, onDone() {}, onReconnect: () => { reconnects++; } });
+  assert.equal(done.textContent, 'Reconnect wallet');
+  assert.equal(reconnects, 0);
+  done.dispatchEvent(new Event('click'));
+  assert.equal(reconnects, 1);
+  const pending = renderFlowProgressFooter({ done: false, onDone() {}, onReconnect() {} });
+  assert.equal(nodes(pending).some((node) => node.tagName === 'BUTTON'), false);
 }));

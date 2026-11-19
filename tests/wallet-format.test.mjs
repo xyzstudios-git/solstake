@@ -7,7 +7,7 @@ import { encodeBase58 } from '../site/lib/base58.js';
 
 function fakeWallet(name, { chains = [SOLANA_MAINNET], sign = true, signAndSend = false } = {}) {
   const key = Keypair.generate().publicKey;
-  const account = { address: key.toBase58(), publicKey: key.toBytes(), chains, features: [] };
+  const account = { address: key.toBase58(), publicKey: key.toBytes(), chains, features: [...(sign ? ['solana:signTransaction'] : []), ...(signAndSend ? ['solana:signAndSendTransaction'] : [])] };
   const seen = [];
   const features = {
     'standard:connect': { version: '1.0.0', connect: async () => ({ accounts: [account] }) },
@@ -34,7 +34,9 @@ function fakeWallet(name, { chains = [SOLANA_MAINNET], sign = true, signAndSend 
       },
     };
   }
-  return { version: '1.0.0', name, icon: 'data:image/svg+xml;base64,AAAA', chains, accounts: [], features, seen, account };
+  const wallet = { version: '1.0.0', name, icon: 'data:image/svg+xml;base64,AAAA', chains, accounts: [], features, seen, account };
+  features['standard:connect'].connect = async () => { wallet.accounts = [account]; return { accounts: wallet.accounts }; };
+  return wallet;
 }
 
 test('finds wallets that registered before and after the app', () => {
@@ -127,4 +129,75 @@ test('formats SOL, exact token amounts, addresses and USD for English readers', 
   assert.equal(monogram(''), '?');
   assert.equal(tokenValueUsd(1_500_000n, 6, 2), 3);
   assert.equal(tokenValueUsd(1n, 6, undefined), null);
+});
+
+
+test('signing uses the methods authorized for this account, not just advertised by the wallet', async () => {
+  const wallet = fakeWallet('Restricted methods', { sign: true, signAndSend: true });
+  wallet.account.features = ['solana:signAndSendTransaction'];
+  const account = await connectWallet(wallet);
+  const signer = createSigner(wallet, account);
+  assert.equal(signer.mode, 'signAndSend');
+  await signer.signAndSend(Uint8Array.of(1));
+  assert.equal(wallet.seen.length, 1);
+});
+
+test('an explicit empty connection result cannot reuse previously authorized accounts', async () => {
+  const wallet = fakeWallet('Revoked connection');
+  wallet.accounts = [wallet.account];
+  wallet.features['standard:connect'].connect = async () => ({ accounts: [] });
+  await assert.rejects(connectWallet(wallet), /account/i);
+});
+
+test('accounts without signing permission cannot create a signer', async () => {
+  const wallet = fakeWallet('Watch only');
+  wallet.account.features = [];
+  assert.throws(() => createSigner(wallet, wallet.account), /authoriz|reconnect/i);
+  await assert.rejects(connectWallet(wallet), /authoriz|reconnect/i);
+  assert.equal(wallet.seen.length, 0);
+});
+
+test('a renewed authorization for the same address uses the current account object', async () => {
+  const wallet = fakeWallet('Renewed authorization');
+  const account = await connectWallet(wallet);
+  const signer = createSigner(wallet, account);
+  const current = { ...account };
+  wallet.accounts = [current];
+  wallet.features['solana:signTransaction'].signTransaction = async (...inputs) => {
+    assert.ok(inputs.every((input) => input.account === current), 'the provider requires its current authorized account object');
+    return inputs.map((input) => ({ signedTransaction: input.transaction }));
+  };
+  assert.deepEqual(await signer.signTransactions([Uint8Array.of(1)]), [Uint8Array.of(1)]);
+});
+
+test('revoked accounts and changed owners stop before any wallet request', async () => {
+  const wallet = fakeWallet('Removed account');
+  const account = await connectWallet(wallet);
+  const signer = createSigner(wallet, account);
+  wallet.accounts = [];
+  await assert.rejects(signer.signTransactions([Uint8Array.of(1)]), /authoriz|reconnect/i);
+  wallet.accounts = [fakeWallet('Other owner').account];
+  await assert.rejects(signer.signTransactions([Uint8Array.of(1)]), /authoriz|reconnect/i);
+  assert.equal(wallet.seen.length, 0);
+});
+
+test('account method revocation also stops sign-and-send before it can broadcast', async () => {
+  const wallet = fakeWallet('Permission removed', { sign: false, signAndSend: true });
+  const account = await connectWallet(wallet);
+  const signer = createSigner(wallet, account);
+  wallet.accounts = [{ ...account, features: [] }];
+  await assert.rejects(signer.signAndSend(Uint8Array.of(1)), /authoriz|reconnect/i);
+  assert.equal(wallet.seen.length, 0);
+});
+
+test('a provider authorization error never retries, reconnects or changes the signing method automatically', async () => {
+  const wallet = fakeWallet('Unauthorized', { sign: true, signAndSend: true });
+  const account = await connectWallet(wallet);
+  const error = Object.assign(new Error('The requested method and/or account has not been authorized by the user.'), { code: 4100 });
+  let calls = 0;
+  wallet.features['standard:connect'].connect = async () => { throw new Error('Unexpected automatic reconnect'); };
+  wallet.features['solana:signTransaction'].signTransaction = async () => { calls++; throw error; };
+  await assert.rejects(createSigner(wallet, account).signTransactions([Uint8Array.of(1)]), (received) => received === error);
+  assert.equal(calls, 1);
+  assert.equal(wallet.seen.length, 0);
 });

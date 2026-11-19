@@ -181,6 +181,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   let submittedSignature = null;
   let submittedTransaction = null;
   let walletChange = () => {};
+  let failAuthorization = false;
   const nextOwner = Keypair.fromSeed(new Uint8Array(32).fill(44)).publicKey.toBase58();
   const watchedOwner = Keypair.fromSeed(new Uint8Array(32).fill(45)).publicKey.toBase58();
   let failNextOwnerScan = true;
@@ -196,12 +197,14 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
     name: 'Local test wallet', icon: 'data:image/svg+xml,<svg/>', version: '1.0.0',
     chains: ['solana:mainnet'], accounts: [walletAccount],
     features: {
-      'standard:connect': { version: '1.0.0', connect: async () => { connected += 1; return { accounts: [walletAccount] }; } },
-      'standard:events': { version: '1.0.0', on: (_type, listener) => { walletChange = listener; return () => { walletChange = () => {}; }; } },
+      'standard:connect': { version: '1.0.0', connect: async () => { connected += 1; wallet.accounts = [walletAccount]; return { accounts: wallet.accounts }; } },
+      'standard:events': { version: '1.0.0', on: (_type, listener) => { walletChange = (event) => { if ('accounts' in event) wallet.accounts = event.accounts; listener(event); }; return () => { walletChange = () => {}; }; } },
       'solana:signTransaction': {
         version: '1.0.0', supportedTransactionVersions: ['legacy'],
         signTransaction: async (...requests) => requests.map(({ transaction, account }) => {
           assert.equal(account.address, owner);
+          assert.equal(account, wallet.accounts.find((entry) => entry.address === account.address), 'the wallet accepts only its current account object');
+          if (failAuthorization) throw Object.assign(new Error('The requested method and/or account has not been authorized by the user.'), { code: 4100 });
           const tx = VersionedTransaction.deserialize(transaction);
           tx.sign([keypair]);
           signed += 1;
@@ -300,6 +303,21 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.equal(findButton($('flow-sheet-footer'), 'Claim with Tip').disabled, false);
   assert.match(findButton($('flow-sheet-footer'), 'Claim with Tip').textContent, /20% tip included/);
 
+  walletChange({ accounts: [{ ...walletAccount }] });
+  assert.equal($('flow-sheet').classList.contains('active'), true, 'same-owner renewal preserves the review');
+  failAuthorization = true;
+  findButton($('flow-sheet-footer'), 'Claim without Tip').click();
+  await until(() => findButton($('flow-sheet-footer'), 'Reconnect wallet'), 'authorization errors offer explicit reconnection');
+  assert.equal(calls.filter((call) => call.method === 'sendTransaction').length, 0);
+  assert.equal(connected, 1, 'an authorization failure never reconnects automatically');
+  assert.deepEqual(saved(), [], 'a denied signature does not create a fabricated transaction record');
+  failAuthorization = false;
+  findButton($('flow-sheet-footer'), 'Reconnect wallet').click();
+  await until(() => connected === 2 && !$('header-refresh').disabled, 'user reconnects the same wallet');
+  assert.equal(signed, 0, 'reconnection does not retry the claim');
+  $('review-button').click();
+  await until(() => findButton($('flow-sheet-footer'), 'Claim without Tip'), 'reconnected wallet requires a fresh review');
+
   findButton($('flow-sheet-footer'), 'Claim without Tip').focus();
   findButton($('flow-sheet-footer'), 'Claim without Tip').click();
   await until(() => saved()[0]?.status === 'sent', 'signed transaction is sent and recorded');
@@ -319,7 +337,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   }
   assert.equal($('account-sheet').classList.contains('active'), false);
   assert.equal($('address-sheet').classList.contains('active'), false);
-  assert.equal(connected, 1);
+  assert.equal(connected, 2);
   walletChange({ accounts: [walletAccount] }); // A same-account event must not suppress the final rescan.
 
   releaseConfirmation();
@@ -397,7 +415,7 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.match($('flow-sheet-body').textContent, /Connect the wallet that owns this address/);
   assert.equal(calls.filter((call) => call.method === 'sendTransaction').length, 1, 'watch-only mode never submits another transaction');
   findButton($('flow-sheet-footer'), 'Connect wallet').click();
-  await until(() => connected === 2 && !$('header-refresh').disabled, 'read-only mode transitions back to a connected wallet');
+  await until(() => connected === 3 && !$('header-refresh').disabled, 'read-only mode transitions back to a connected wallet');
   assert.deepEqual(createHistoryStore({ storage: localStorage }).read(watchedOwner).entries, []);
   assert.equal(saved().length, 1);
 

@@ -312,3 +312,14 @@ test('explainError translates common Solana errors', () => {
   assert.match(explainError({ InstructionError: [1, { Custom: 99 }] }, ['Program log: Error: Mint is paused']), /Mint is paused/);
   assert.match(explainError({ Weird: 1 }), /Weird/);
 });
+
+
+test('a wallet authorization failure asks for reconnection and submits no transaction', async () => {
+  const plan = await readyPlan(4);
+  const chain = fakeChain();
+  const signer = { mode: 'sign', async signTransactions() { throw Object.assign(new Error('The requested method and/or account has not been authorized by the user.'), { code: 4100 }); } };
+  const results = await executeBurnPlan({ rpc: chain, signer, owner, plan, sleep: noSleep });
+  assert.ok(results.every((entry) => entry.status === 'rejected'));
+  assert.ok(results.every((entry) => /Reconnect your wallet/i.test(entry.error)));
+  assert.equal(chain.sent.length, 0);
+});
