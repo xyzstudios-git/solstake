@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorker } from '../worker/index.js';
+import { execFileSync } from 'node:child_process';
+import { readFile, readdir } from 'node:fs/promises';
 
 const origin = 'https://solfund.xyzstudios.de';
 const env = { SOLSTAKE_ALLOWED_ORIGINS: origin, SOLSTAKE_RPC_URL: 'https://rpc.example/?api-key=test-secret' };
@@ -9,6 +11,25 @@ const request = (body = payload(), headers = {}, url = `${origin}/rpc`) => new R
   method: 'POST', headers: { origin, 'content-type': 'application/json', 'cf-connecting-ip': '192.0.2.1', ...headers }, body,
 });
 const upstream = () => Response.json({ jsonrpc: '2.0', id: 7, result: { value: 42 } });
+
+test('production build serves all original assets byte-for-byte without filesystem or environment secrets', async () => {
+  execFileSync(process.execPath, ['tools/build-hosted.mjs'], { cwd: new URL('../', import.meta.url) });
+  const built = await import(`../dist/server/index.js?test=${Date.now()}`);
+  const walk = async (directory = '') => {
+    for (const entry of await readdir(new URL(`../site/${directory}`, import.meta.url), { withFileTypes: true })) {
+      const path = `${directory}${entry.name}`;
+      if (entry.isDirectory()) await walk(`${path}/`);
+      else {
+        const result = await built.default.fetch(new Request(`${origin}/${path}`), env);
+        assert.equal(result.status, 200, path);
+        assert.deepEqual(Buffer.from(await result.arrayBuffer()), await readFile(new URL(`../site/${path}`, import.meta.url)), path);
+      }
+    }
+  };
+  await walk();
+  const source = await readFile(new URL('../dist/server/index.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /node:fs|\/Users\/anton|test-secret/);
+});
 
 test('hosted app serves exact embedded assets, HEAD and security headers', async () => {
   const app = createWorker({ assets: { '/index.html': { type: 'text/html', base64: btoa('<h1>Solstake</h1>') } } });

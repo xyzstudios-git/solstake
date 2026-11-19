@@ -13,7 +13,8 @@
     "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=site/lib/**",
     "check": "node tools/check-syntax.mjs",
     "demo": "node tools/demo-chain.mjs",
-    "simulate:mainnet": "node --env-file-if-exists=.env tools/mainnet-sim-check.mjs"
+    "simulate:mainnet": "node --env-file-if-exists=.env tools/mainnet-sim-check.mjs",
+    "build": "node tools/build-hosted.mjs"
   },
   "devDependencies": {
     "@solana/spl-token": "0.4.15",

@@ -6,8 +6,7 @@
 //   node serve.mjs                         → http://127.0.0.1:8790
 //   SOLSTAKE_RPC_URL=https://… node serve.mjs   (z. B. Helius mit Schlüssel)
 //
-// Gedacht für den eigenen Rechner. Für öffentliches Hosting fehlen noch Ratenbegrenzung je Nutzer
-// und ein Host, der die Sicherheits-Header setzt (siehe README).
+// Dieser Server bleibt lokal. Der öffentliche Worker liegt in worker/index.js.
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
@@ -15,30 +14,8 @@ import { fileURLToPath } from 'node:url';
 
 const SITE_DIR = fileURLToPath(new URL('./site/', import.meta.url));
 export const DEFAULT_UPSTREAM = 'https://api.mainnet-beta.solana.com';
-const TOKEN_PROGRAMS = new Set(['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb']);
-const MAX_BODY_BYTES = 64 * 1024;
-const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
-const UPSTREAM_TIMEOUT_MS = 45_000;
-
-const isText = (value, max = 100) => typeof value === 'string' && value.length > 0 && value.length <= max;
-const isList = (value, max) => Array.isArray(value) && value.length > 0 && value.length <= max && value.every((v) => isText(v));
-const optionsOnly = (value, allowed) => value === undefined || (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every((k) => allowed.includes(k)));
-
-/** Erlaubte Methoden mit Prüfung ihrer Parameter; alles andere wird nicht weitergereicht. */
-const METHODS = Object.freeze({
-  getTokenAccountsByOwner: (p) => isText(p[0]) && TOKEN_PROGRAMS.has(p[1]?.programId) && Object.keys(p[1]).length === 1 && optionsOnly(p[2], ['encoding', 'commitment']),
-  getMultipleAccounts: (p) => isList(p[0], 100) && optionsOnly(p[1], ['encoding', 'commitment']),
-  getBalance: (p) => isText(p[0]) && optionsOnly(p[1], ['commitment']),
-  getMinimumBalanceForRentExemption: (p) => Number.isInteger(p[0]) && p[0] >= 0 && p[0] <= 10 * 1024 * 1024 && optionsOnly(p[1], ['commitment']),
-  getLatestBlockhash: (p) => optionsOnly(p[0], ['commitment']),
-  getBlockHeight: (p) => optionsOnly(p[0], ['commitment']),
-  getRecentPrioritizationFees: (p) => p.length === 0 || (Array.isArray(p[0]) && p[0].length <= 128),
-  simulateTransaction: (p) => isText(p[0], 4096) && optionsOnly(p[1], ['encoding', 'sigVerify', 'replaceRecentBlockhash', 'commitment']),
-  sendTransaction: (p) => isText(p[0], 4096) && optionsOnly(p[1], ['encoding', 'skipPreflight', 'preflightCommitment', 'maxRetries']),
-  getSignatureStatuses: (p) => isList(p[0], 256) && optionsOnly(p[1], ['searchTransactionHistory']),
-  getTransaction: (p) => isText(p[0], 88) && /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(p[0]) && optionsOnly(p[1], ['encoding', 'commitment', 'maxSupportedTransactionVersion']) && p[1]?.encoding === 'json' && p[1]?.commitment === 'confirmed' && p[1]?.maxSupportedTransactionVersion === 0,
-});
-export const ALLOWED_METHODS = new Set(Object.keys(METHODS));
+import { METHODS, SECURITY_HEADERS, MAX_BODY_BYTES, MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS } from './server/rpc-policy.js';
+export { ALLOWED_METHODS } from './server/rpc-policy.js';
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -51,28 +28,6 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
 };
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' data:",
-  "font-src 'self'",
-  "connect-src 'self' https://api.jup.ag",
-  "frame-ancestors 'none'",
-  "base-uri 'none'",
-  "form-action 'none'",
-  "object-src 'none'",
-].join('; ');
-const SECURITY_HEADERS = Object.freeze({
-  'Content-Security-Policy': CSP,
-  'X-Frame-Options': 'DENY',
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'no-referrer',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
-  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-  'Cross-Origin-Resource-Policy': 'same-origin',
-  'Cache-Control': 'no-store',
-});
 
 function sendText(res, status, text) {
   res.writeHead(status, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' });
@@ -208,7 +163,7 @@ async function handleRpc(req, res, { upstreamUrl, fetchImpl, allowedOrigins, max
     return;
   }
   const id = typeof payload.id === 'number' || typeof payload.id === 'string' ? payload.id : null;
-  const check = METHODS[payload.method];
+  const check = Object.hasOwn(METHODS, payload.method) ? METHODS[payload.method] : null;
   if (!check) {
     sendRpcError(res, 403, `Method not allowed: ${String(payload.method).slice(0, 60)}`, id);
     return;
@@ -227,7 +182,7 @@ async function handleRpc(req, res, { upstreamUrl, fetchImpl, allowedOrigins, max
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (error) {
-    process.stderr.write(`Solstake: Solana RPC unavailable (${payload.method}): ${error.message}\n`);
+    process.stderr.write(`Solstake: Solana RPC unavailable (${payload.method})\n`);
     sendRpcError(res, 502, 'Solana RPC unavailable', id);
     return;
   }

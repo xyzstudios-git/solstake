@@ -15,7 +15,7 @@ async function collect(directory) {
   }
 }
 
-for (const directory of ['site/js', 'site/lib', 'tools', 'tests']) await collect(directory);
+for (const directory of ['site/js', 'site/lib', 'server', 'worker', 'tools', 'tests']) await collect(directory);
 for (const file of files.sort()) {
   const result = spawnSync(process.execPath, ['--check', resolve(root, file)], { encoding: 'utf8' });
   if (result.error) throw result.error;
