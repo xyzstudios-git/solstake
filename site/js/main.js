@@ -305,11 +305,15 @@ async function connectTo(wallet) {
 function handleWalletChange(wallet, event) {
   if (!event || (!('accounts' in event) && !('features' in event)) || state.wallet !== wallet) return;
   if (state.running || connecting) {
-    pendingWalletChange = { wallet, event };
+    const previous = pendingWalletChange?.wallet === wallet ? pendingWalletChange.event : {};
+    pendingWalletChange = { wallet, event: { ...previous, ...event } };
     return;
   }
-  const accounts = 'accounts' in event ? event.accounts : wallet.accounts;
-  const next = Array.isArray(accounts) ? accounts.find((account) => account?.chains?.includes?.(SOLANA_MAINNET)) : null;
+  const accountsChanged = 'accounts' in event;
+  const accounts = accountsChanged ? event.accounts : wallet.accounts;
+  // A feature update refreshes permissions for the reviewed owner, not the selected address.
+  const next = Array.isArray(accounts) ? accounts.find((account) =>
+    account?.chains?.includes?.(SOLANA_MAINNET) && (accountsChanged || account.address === state.owner)) : null;
   if (!next || !isAddress(next.address)) {
     closeModal('flow-sheet');
     closeModal('confirm-alert');
