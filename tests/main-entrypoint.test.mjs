@@ -319,6 +319,17 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.equal(calls.filter((call) => call.method === 'getTokenAccountsByOwner').length, 2);
   assert.equal(signed, 0);
 
+  assert.ok($('header-home'), 'the header logo is a home link');
+  $('header-home').click();
+  assert.match($('main').textContent, /Get your SOL back/);
+  assert.equal($('app-footer').hidden, false);
+  assert.equal($('header-account').hidden, false, 'home preserves the connected wallet');
+  assert.equal(connected, 1, 'home does not reconnect or disconnect the wallet');
+  assert.equal(browser.document.activeElement, $('start-title'));
+  findButton($('main'), 'View accounts').click();
+  await until(() => $('main').textContent.includes('Empty accounts') && !$('header-refresh').disabled, 'home resumes a fresh account scan');
+  assert.equal(connected, 1);
+
   $('review-button').click();
   await until(() => findButton($('flow-sheet-footer'), 'Claim without Tip'), 'simulated review is ready');
   assert.ok($('flow-sheet').classList.contains('active'));
@@ -365,6 +376,9 @@ test('real entry point connects, simulates, signs and confirms a claim, then ren
   assert.equal($('account-sheet').classList.contains('active'), false);
   assert.equal($('address-sheet').classList.contains('active'), false);
   assert.equal(connected, 2);
+  assert.equal($('header-home').getAttribute('aria-disabled'), 'true');
+  $('header-home').click();
+  assert.doesNotMatch($('main').textContent, /Get your SOL back/, 'home is locked while a claim is running');
   walletChange({ accounts: [walletAccount] }); // A same-account event must not suppress the final rescan.
 
   releaseConfirmation();
