@@ -69,7 +69,7 @@ function render() {
   const listShown = state.phase === 'list' && !showingAccount;
   $('app-footer').hidden = state.phase !== 'start' || showingAccount;
   if (showingAccount) renderAccountPage();
-  if (!showingAccount && state.phase === 'start') setContent(main, views.renderStart({ onConnect: connect, onWatch: openAddressSheet }));
+  if (!showingAccount && state.phase === 'start') setContent(main, views.renderStart({ onConnect: state.owner ? scan : connect, onWatch: openAddressSheet, hasAccount: Boolean(state.owner) }));
   if (!showingAccount && state.phase === 'loading') setContent(main, views.renderLoading('Loading accounts…'));
   if (listShown) setContent(main, views.renderAccounts(state, { onToggle: toggle, onSelectAll: selectAll, onFilter: setFilter, onReview: review }));
   // Einblenden nur beim Wechsel der Ansicht, nicht wenn Namen oder Kurse nachkommen
@@ -87,6 +87,8 @@ function render() {
 function renderHeader() {
   const hasAccount = Boolean(state.owner);
   const locked = state.running || connecting;
+  $('header-home').setAttribute('aria-disabled', String(locked));
+  $('header-home').setAttribute('tabindex', locked ? '-1' : '0');
   const refresh = $('header-refresh');
   $('header-connect').hidden = hasAccount;
   $('header-address').hidden = hasAccount;
@@ -265,6 +267,23 @@ function setFilter(value) {
       search?.setSelectionRange(search.value.length, search.value.length);
     }
   }, 150);
+}
+
+function goHome(event) {
+  event.preventDefault();
+  if (state.running || connecting) return;
+  accountVisible = false;
+  historyRequest += 1;
+  historyRefreshing = false;
+  historySyncWarning = null;
+  scanToken += 1;
+  reviewToken += 1;
+  finishedRun = false;
+  clearTimeout(filterTimer);
+  update({ phase: 'start', plan: null, claimPlans: null, pricesLoading: false, filter: '' });
+  for (const id of ['flow-sheet', 'account-sheet', 'address-sheet', 'wallet-sheet', 'confirm-alert', 'error-alert']) closeModal(id);
+  render();
+  $('start-title')?.focus({ preventScroll: true });
 }
 
 // ---------- Wallet ----------
@@ -711,6 +730,7 @@ function finishRun() {
 
 function init() {
   watchWallets(window, (wallets) => update({ wallets }));
+  $('header-home').addEventListener('click', goHome);
   $('review-button').addEventListener('click', review);
   $('header-connect').addEventListener('click', connect);
   $('header-address').addEventListener('click', openAddressSheet);

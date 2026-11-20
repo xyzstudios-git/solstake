@@ -76,7 +76,7 @@ export function renderLoading(text) {
 
 // ---------- Start ----------
 
-export function renderStart({ onConnect, onWatch }) {
+export function renderStart({ onConnect, onWatch, hasAccount = false }) {
   return h(
     'div',
     { class: 'app-start' },
@@ -84,9 +84,9 @@ export function renderStart({ onConnect, onWatch }) {
       'section',
       { class: 'app-hero app-material', 'aria-labelledby': 'start-title' },
       h('img', { class: 'app-hero__mark', src: 'icon.svg', alt: '', width: 104, height: 104 }),
-      h('h1', { class: 'app-hero__title', id: 'start-title' }, 'Get your ', h('span', { class: 'app-gradient-text', text: 'SOL' }), ' back'),
+      h('h1', { class: 'app-hero__title', id: 'start-title', tabindex: -1 }, 'Get your ', h('span', { class: 'app-gradient-text', text: 'SOL' }), ' back'),
       h('div', { class: 'app-hero__text', text: 'Close empty accounts, burn unwanted tokens, and recover the rent — usually 0.002 SOL per account. Optional tips support Solstake.' }),
-      h('button', { class: 'p-button p-button-touch-large p-button-primary app-cta app-wide', type: 'button', on: { click: onConnect } }, 'Connect wallet'),
+      h('button', { class: 'p-button p-button-touch-large p-button-primary app-cta app-wide', type: 'button', on: { click: onConnect } }, hasAccount ? 'View accounts' : 'Connect wallet'),
       h('button', { class: 'p-button p-button-touch-small p-button-borderless', type: 'button', on: { click: onWatch } }, 'View an address'),
       h('ul', { class: 'app-facts', 'aria-label': 'Safety' }, fact('lock-key', 'Your keys stay in your wallet'), fact('flask', 'Simulated before sending'), fact('hand-coins', 'Tipping is optional')),
     ),
@@ -545,12 +545,13 @@ export function renderFlowReadyFooter({ plan, tipPlan = null, state, minFeeLampo
   const tipDisabled = !tipPlan || state.balance !== null && state.balance < minTipFeeLamports;
   const net = (choice) => Math.max(0, choice.reclaimLamports - choice.networkFeeLamports - (choice.tipLamports ?? 0));
   const option = (title, choice, withTip, disabled) => h('button', {
-    class: ['p-button', 'p-button-touch-large', 'app-wide', 'app-claim-choice', withTip ? 'p-button-primary app-cta' : 'p-button-default app-claim-choice--plain'],
+    class: ['p-button', 'p-button-touch-large', 'app-wide', 'app-claim-choice', withTip ? 'p-button-primary app-cta' : 'p-button-borderless app-claim-choice--plain'],
     type: 'button', disabled,
     'aria-label': title,
     on: { click: () => onExecute(withTip) },
   },
-  h('span', { class: 'app-claim-choice__title' }, withTip ? icon('heart') : icon('arrow-down'), h('span', { text: title })),
+  h('span', { class: 'app-claim-choice__title', text: withTip ? title : title.replace(' without Tip', ' without') }),
+  withTip ? icon('arrow-right', { cls: 'app-claim-choice__arrow' }) : null,
   h('span', { class: 'app-claim-choice__detail', text: choice ? `Receive ≈ ${formatSolNumber(net(choice))} SOL${withTip && choice.tipLamports > 0 ? ' · 20% tip included' : ''}` : 'Not available for this selection' }),
   );
   return h('div', { class: 'app-claim-choices' },
