@@ -96,4 +96,4 @@ The public deployment uses the dependency-free Cloudflare Worker in `worker/inde
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Bundled third-party assets retain their own licenses in `site/vendor/`. Check the repository's license and asset notices before redistribution.
 
-The [MIT text](LICENSE.proposed-MIT) is a proposal only, not an active license grant. No code license has been selected; public source visibility does not grant general redistribution rights. See [third-party notices](THIRD_PARTY_NOTICES.md) and the [publishing guide](docs/PUBLISHING.md).
+The [MIT text](docs/proposals/code-license.md) is a proposal only, not an active license grant. No code license has been selected; public source visibility does not grant general redistribution rights. See [third-party notices](THIRD_PARTY_NOTICES.md) and the [publishing guide](docs/PUBLISHING.md).

@@ -1,3 +1,10 @@
+# Unadopted code-license proposal
+
+This document is an internal proposal for the owner to review. It is not the project's adopted license. Publishing the repository did not approve this proposal. Third-party component licenses remain separate.
+
+## Proposed wording
+
+```text
 MIT License
 
 Copyright (c) 2026 Solstake contributors
@@ -19,3 +26,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
