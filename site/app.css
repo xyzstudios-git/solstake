@@ -1283,13 +1283,14 @@ body.app-body .p-bottom-sheet__body {
 }
 
 .app-claim-choice__title {
-  font-size: clamp(18px, 4.8vw, 24px);
+  font-size: clamp(20px, 6vw, 26px);
   font-weight: 500;
   line-height: 1.2;
 }
 
-.app-claim-choice__arrow {
+.p-button.app-claim-choice > .app-claim-choice__arrow {
   position: absolute;
+  inset-inline-start: auto;
   inset-inline-end: 18px;
   top: 50%;
   transform: translateY(-50%);
@@ -1314,6 +1315,7 @@ body.app-body .p-bottom-sheet__body {
 }
 
 .app-claim-choice--plain .app-claim-choice__title {
+  font-size: clamp(18px, 5.4vw, 22px);
   text-decoration: underline;
   text-underline-offset: 4px;
   text-decoration-thickness: 1px;
